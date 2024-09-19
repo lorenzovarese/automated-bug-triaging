@@ -23,6 +23,10 @@ A machine learning tool for automating the assignment of open issues to the best
 
 TODO
 
+## How to Run the Tool
+
+TODO
+
 ## Usage Examples
 
 TODO
