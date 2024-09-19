@@ -25,7 +25,7 @@ TODO
 
 ## How to Run the Tool
 
-TODO (see requirements)
+TODO
 
 ## Usage Examples
 
