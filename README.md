@@ -10,8 +10,6 @@ A machine learning tool for automating the assignment of open issues to the best
   - Perozzi Vittorio
   - Varese Lorenzo
 
-  Given that you'll be using Python for your project, here's an updated README tailored to the full requirements:
-
 ## Features
 
 - **Automated Assignment**: Automatically assigns open issues to the best-suited developers based on historical data.
