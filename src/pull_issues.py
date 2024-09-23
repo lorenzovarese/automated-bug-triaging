@@ -6,7 +6,7 @@ import pandas as pd
 
 
 MAX_ISSUE_ID = 220_000
-ISSUES_FILE = "issues.json"
+ISSUES_FILE = "res/issues.json"
 
 
 def pull_issues(
@@ -33,6 +33,12 @@ def pull_issues(
             - body: the body of the issue
             - assignee: the assignee of the issue
     """
+
+    if not force_pull and os.path.exists(ISSUES_FILE):
+        with open(ISSUES_FILE, 'r') as file:
+            df = pd.read_json(file)
+            return df
+
     ret = []
 
     auth = Auth.Token(auth_token)
