@@ -50,8 +50,11 @@ def extract_code_snippets(text):
 
 def extract_images_and_links(text):
     """Extracts markdown-style images and links from the text."""
+    # Pattern for markdown images: ![alt_text](url)
     image_pattern = re.compile(r'!\[(.*?)\]\((.*?)\)')
-    link_pattern = re.compile(r'\[(.*?)\]\((.*?)\)')
+    
+    # Pattern for markdown links: [text](url), but not starting with !
+    link_pattern = re.compile(r'(?<!!)\[(.*?)\]\((.*?)\)')
 
     images = image_pattern.findall(text)
     links = link_pattern.findall(text)
