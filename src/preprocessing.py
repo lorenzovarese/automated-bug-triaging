@@ -7,6 +7,7 @@ import nltk
 import random
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+from tqdm import tqdm
 
 # Ensure NLTK stopwords are downloaded
 nltk.download('stopwords', quiet=True)
@@ -108,7 +109,9 @@ def preprocess_text(text):
 def preprocess_issues(issues):
     """Applies text preprocessing to issue titles and bodies, extracts code snippets, images, and links."""
     preprocessed_issues = []
-    for issue in issues:
+    
+    # Add progress bar with tqdm
+    for issue in tqdm(issues, desc="Preprocessing Issues", unit="issue"):
         preprocessed_title = preprocess_text(issue['title'])
         
         # Extract code snippets, images, and links
