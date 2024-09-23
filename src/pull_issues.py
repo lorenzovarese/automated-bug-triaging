@@ -20,14 +20,18 @@ def pull_issues(
     Get the issues from the given url.
 
     Args:
-        github_repo (str): TODO
-        auth_token (str): TODO
+        github_repo (str): the url of the github repository
+        auth_token (str): the authentication token
         force_pull (bool, optional, default = False): force to pull the data. If False, the value returned is the one cached locally (if any), if True pulls and caches a new version
         start_page (int, optional, default = 0): the page from which we start to fetch issues
         end_page (int, optional, default = -1): the final page to fetch. -1 means the last page
 
     Returns:
-        list: A list of dictionaries (?) pulled from github. Each dict is an issue
+        list: A dataframe containing the issues. The columns of the dataframe are:
+            - github_id: the id of the issue
+            - title: the title of the issue
+            - body: the body of the issue
+            - assignee: the assignee of the issue
     """
     ret = []
 
