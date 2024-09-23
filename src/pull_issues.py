@@ -10,7 +10,6 @@ ISSUES_FILE = "res/issues.json.zip"
 
 def pull_issues(
         github_repo: str, 
-        auth_token: str, 
         force_pull=False, 
     ) -> pd.DataFrame:
     """
@@ -18,7 +17,6 @@ def pull_issues(
 
     Args:
         github_repo (str): the url of the github repository
-        auth_token (str): the authentication token
         force_pull (bool, optional, default = False): force to pull the data. If False, the value returned is the one cached locally (if any), if True pulls and caches a new version
 
     Returns:
@@ -34,6 +32,9 @@ def pull_issues(
         return df
 
     ret = []
+
+    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
+    auth_token = os.environ["GITHUB_AUTH_TOKEN"]
 
     assert len(auth_token) > 0, "Please provide a valid authentication token"
     auth = Auth.Token(auth_token)
@@ -61,12 +62,8 @@ def pull_issues(
 
     return df
 
-
 if __name__ == "__main__":
     # Example of usage
-    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
-    token = os.environ["GITHUB_AUTH_TOKEN"]
-
-    df = pull_issues("microsoft/vscode", token, force_pull=True)
+    df = pull_issues("microsoft/vscode")
     print(df.head())
     print(df.shape)
