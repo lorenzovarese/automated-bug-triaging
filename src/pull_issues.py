@@ -3,7 +3,6 @@ from github import Github
 from github import Auth
 import pandas as pd
 from tqdm import tqdm
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 MAX_ISSUE_ID = 220_000
@@ -44,27 +43,21 @@ def pull_issues(
     repo = g.get_repo(github_repo)
     issues = repo.get_issues(state="closed", direction="asc")
 
-    def process_issue(issue, pbar):
-        pbar.update(1)
-        return {
-            "github_id": issue.number,
-            "title": issue.title,
-            "body": issue.body,
-        }
-    
-    with tqdm(total=issues.totalCount, desc="Fetching Issues", ncols=100) as pbar:
-        # Use ThreadPoolExecutor to multithread the processing of issues
-        with ThreadPoolExecutor(max_workers=7) as executor:
-            futures = {executor.submit(process_issue, issue, pbar): issue for issue in issues}
+    with tqdm(total=issues.totalCount, ncols= 100) as pbar:
+        for issue in issues:
+            if issue.number > MAX_ISSUE_ID:
+                break
+            if len(issue.assignees) != 1:
+                continue
 
-            # Iterate over the completed futures as they finish
-            for future in as_completed(futures):
-                issue = futures[future]
-                try:
-                    result = future.result()
-                    ret.append(result)
-                except Exception as exc:
-                    print(f"Issue {issue.number} generated an exception: {exc}")
+            issue_info = {
+                "github_id": issue.number,
+                "title": issue.title,
+                "body": issue.body,
+            }
+            ret.append(issue_info)
+            pbar.update(1)
+            pbar.set_description(f"Processing issue {issue.number}")
 
     df = pd.DataFrame(ret)
     df.to_json(ISSUES_FILE, orient="records")
