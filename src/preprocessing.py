@@ -38,6 +38,15 @@ def extract_relevant_fields(issues):
         })
     return extracted_issues
 
+def extract_code_snippets(text):
+    """Extracts code snippets from the issue body and returns both the code snippets and the remaining text."""
+    code_pattern = re.compile(r'```(.*?)```', re.DOTALL)
+    # Find all code blocks
+    code_snippets = code_pattern.findall(text)
+    # Remove the code blocks from the text
+    cleaned_text = code_pattern.sub('', text)
+    return code_snippets, cleaned_text
+
 def filter_single_assignee(issues):
     """Keeps only issues with exactly one assignee."""
     filtered_issues = [issue for issue in issues if issue['assignee'] and isinstance(issue['assignee'], str)]
@@ -79,16 +88,21 @@ def preprocess_text(text):
     return preprocessed_text
 
 def preprocess_issues(issues):
-    """Applies text preprocessing to issue titles and bodies."""
+    """Applies text preprocessing to issue titles and bodies, extracts code snippets."""
     preprocessed_issues = []
     for issue in issues:
         preprocessed_title = preprocess_text(issue['title'])
-        preprocessed_body = preprocess_text(issue['body'])
+        
+        # Extract code snippets and preprocess the remaining text body
+        code_snippets, remaining_body = extract_code_snippets(issue['body'])
+        preprocessed_body = preprocess_text(remaining_body)
+        
         preprocessed_issue = {
             'github_id': issue['github_id'],
             'title': preprocessed_title,
             'body': preprocessed_body,
-            'assignee': issue['assignee']
+            'assignee': issue['assignee'],
+            'code_snippets': code_snippets
         }
         preprocessed_issues.append(preprocessed_issue)
     return preprocessed_issues
