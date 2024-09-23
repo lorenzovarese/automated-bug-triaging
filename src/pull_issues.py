@@ -2,6 +2,7 @@ import os
 from github import Github
 from github import Auth
 import pandas as pd
+from tqdm import tqdm
 
 
 MAX_ISSUE_ID = 220_000
@@ -42,20 +43,24 @@ def pull_issues(
     repo = g.get_repo(github_repo)
     issues = repo.get_issues(state="closed", direction="asc")
 
-    for issue in issues:
-        if issue.number > MAX_ISSUE_ID:
-            break
-        if len(issue.assignees) != 1:
-            continue
+    df = pd.DataFrame()
+    
+    with tqdm(total=issues.totalCount, ncols=100) as pbar:
+        for issue in issues:
+            if issue.number > MAX_ISSUE_ID:
+                break
+            if len(issue.assignees) != 1:
+                continue
 
-        issue_info = {
-            "github_id": issue.number,
-            "title": issue.title,
-            "body": issue.body,
-        }
-        ret.append(issue_info)
+            issue_info = {
+                "github_id": issue.number,
+                "title": issue.title,
+                "body": issue.body,
+            }
+            ret.append(issue_info)
+            pbar.update(1)
+            pbar.set_postfix(issue_number=issue.number)
 
-    df = pd.DataFrame(ret)
     df.to_json(ISSUES_FILE, orient="records")
 
     return df
