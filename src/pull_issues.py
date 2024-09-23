@@ -62,6 +62,15 @@ def pull_issues(
 
 if __name__ == "__main__":
     # Example of usage
-    df = pull_issues("microsoft/vscode")
+    df = pull_issues("microsoft/vscode", force_pull=True)
     print(df.head())
     print(df.shape)
+    df_train = df[df["github_id"] < 210_000]
+
+    df_recent = df[(190_000 <= df_train["github_id"]) & (df_train["github_id"] <= 210_000)]
+
+    df_test = df[(210_000 < df["github_id"]) & (df["github_id"] <= 220_000)]
+
+    print(f"Train: {df_train.shape[0]}")
+    print(f"Recent: {df_recent.shape[0]}")
+    print(f"Test: {df_test.shape[0]}")
