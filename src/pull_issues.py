@@ -5,7 +5,7 @@ import pandas as pd
 
 
 MAX_ISSUE_ID = 220_000
-ISSUES_FILE = "res/issues.json"
+ISSUES_FILE = "res/issues.json.zip"
 
 
 def pull_issues(
@@ -30,9 +30,8 @@ def pull_issues(
     """
 
     if not force_pull and os.path.exists(ISSUES_FILE):
-        with open(ISSUES_FILE, 'r') as file:
-            df = pd.read_json(file)
-            return df
+        df = pd.read_json(ISSUES_FILE)
+        return df
 
     ret = []
 
