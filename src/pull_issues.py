@@ -24,7 +24,6 @@ def pull_issues(
             - github_id: the id of the issue
             - title: the title of the issue
             - body: the body of the issue
-            - assignee: the assignee of the issue
     """
 
     if not force_pull and os.path.exists(ISSUES_FILE):
@@ -53,7 +52,6 @@ def pull_issues(
             "github_id": issue.number,
             "title": issue.title,
             "body": issue.body,
-            "assignee": issue.assignee.login,
         }
         ret.append(issue_info)
 
