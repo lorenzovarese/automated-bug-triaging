@@ -47,6 +47,24 @@ def extract_code_snippets(text):
     cleaned_text = code_pattern.sub('', text)
     return code_snippets, cleaned_text
 
+def extract_images_and_links(text):
+    """Extracts markdown-style images and links from the text."""
+    image_pattern = re.compile(r'!\[(.*?)\]\((.*?)\)')
+    link_pattern = re.compile(r'\[(.*?)\]\((.*?)\)')
+
+    images = image_pattern.findall(text)
+    links = link_pattern.findall(text)
+
+    # Remove the images and links from the text to clean it up
+    text_cleaned = image_pattern.sub('', text)
+    text_cleaned = link_pattern.sub('', text_cleaned)
+
+    # Format images and links into readable form
+    images_list = [{'alt_text': alt, 'url': url} for alt, url in images]
+    links_list = [{'text': text, 'url': url} for text, url in links]
+
+    return images_list, links_list, text_cleaned
+
 def filter_single_assignee(issues):
     """Keeps only issues with exactly one assignee."""
     filtered_issues = [issue for issue in issues if issue['assignee'] and isinstance(issue['assignee'], str)]
@@ -88,21 +106,25 @@ def preprocess_text(text):
     return preprocessed_text
 
 def preprocess_issues(issues):
-    """Applies text preprocessing to issue titles and bodies, extracts code snippets."""
+    """Applies text preprocessing to issue titles and bodies, extracts code snippets, images, and links."""
     preprocessed_issues = []
     for issue in issues:
         preprocessed_title = preprocess_text(issue['title'])
         
-        # Extract code snippets and preprocess the remaining text body
-        code_snippets, remaining_body = extract_code_snippets(issue['body'])
-        preprocessed_body = preprocess_text(remaining_body)
+        # Extract code snippets, images, and links
+        code_snippets, body_without_code = extract_code_snippets(issue['body'])
+        images, links, body_without_code_or_images = extract_images_and_links(body_without_code)
+        
+        preprocessed_body = preprocess_text(body_without_code_or_images)
         
         preprocessed_issue = {
             'github_id': issue['github_id'],
             'title': preprocessed_title,
             'body': preprocessed_body,
             'assignee': issue['assignee'],
-            'code_snippets': code_snippets
+            'code_snippets': code_snippets,  
+            'images': images,                
+            'links': links                   
         }
         preprocessed_issues.append(preprocessed_issue)
     return preprocessed_issues
