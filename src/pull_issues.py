@@ -6,6 +6,7 @@ import pandas as pd
 
 
 MAX_ISSUE_ID = 220_000
+ISSUES_FILE = "issues.json"
 
 
 def pull_issues(
@@ -64,4 +65,4 @@ if __name__ == "__main__":
 
     issues = pull_issues("microsoft/vscode", token, end_id=3000)
     df = pd.DataFrame(issues)
-    df.to_json("issues.json", orient="records")
+    df.to_json(ISSUES_FILE, orient="records")
