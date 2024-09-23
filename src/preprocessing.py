@@ -137,8 +137,7 @@ def preprocess_issues(issues):
 
 def split_data(issues, train_ratio=0.8):
     """Splits data into training and test sets."""
-    random.shuffle(issues)
-    split_index = int(len(issues) * train_ratio)
+    split_index = int(len(issues) * train_ratio) # TODO(lorenzovarese): fix the number of issues
     train_set = issues[:split_index]
     test_set = issues[split_index:]
     return train_set, test_set
@@ -175,7 +174,7 @@ def main():
     issues = preprocess_issues(issues)
 
     # Split data into training and test sets
-    train_set, test_set = split_data(issues, train_ratio=0.8) # TODO(lorenzovarese): fix the number of issues
+    train_set, test_set = split_data(issues, train_ratio=0.8)
 
     # Create folder structure and save datasets
     train_path = os.path.join('data', 'train', 'train_issues.json')
