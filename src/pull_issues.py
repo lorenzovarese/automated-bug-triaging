@@ -1,7 +1,6 @@
 import os
 from github import Github
 from github import Auth
-from github import GithubException
 import pandas as pd
 
 
