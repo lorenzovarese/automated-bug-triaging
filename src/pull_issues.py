@@ -63,7 +63,10 @@ def pull_issues(
 
 
 if __name__ == "__main__":
+    # Example of usage
     assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
     token = os.environ["GITHUB_AUTH_TOKEN"]
 
     df = pull_issues("microsoft/vscode", token, force_pull=True)
+    print(df.head())
+    print(df.shape)
