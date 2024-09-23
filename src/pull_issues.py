@@ -15,7 +15,7 @@ def pull_issues(
         force_pull=False, 
         start_id: int = 0, 
         end_id:int = -1
-    ) -> list:
+    ) -> pd.DataFrame:
     """
     Get the issues from the given url.
 
@@ -61,12 +61,14 @@ def pull_issues(
 
     print(f"Requests remaining: {core_rate_limit.remaining} / {core_rate_limit.limit}")
     print(f"Resets at: {core_rate_limit.reset}")
-    return ret
+    df = pd.DataFrame(ret)
+    df.to_json(ISSUES_FILE, orient="records")
+
+    return df
 
 
 if __name__ == "__main__":
+    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
     token = os.environ["GITHUB_AUTH_TOKEN"]
 
-    issues = pull_issues("microsoft/vscode", token, end_id=3000)
-    df = pd.DataFrame(issues)
-    df.to_json(ISSUES_FILE, orient="records")
+    df = pull_issues("microsoft/vscode", token, force_pull=True)
