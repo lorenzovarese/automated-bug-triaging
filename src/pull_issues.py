@@ -41,6 +41,7 @@ def pull_issues(
 
     ret = []
 
+    assert len(auth_token) > 0, "Please provide a valid authentication token"
     auth = Auth.Token(auth_token)
     g = Github(auth=auth)
 
