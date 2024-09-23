@@ -46,7 +46,10 @@ def pull_issues(
     g = Github(auth=auth)
 
     repo = g.get_repo(github_repo)
-    issues = repo.get_issues(state="closed", direction="asc")[start_id:end_id]
+    if end_id == -1:
+        issues = repo.get_issues(state="closed", direction="asc")[start_id:]
+    else:
+        issues = repo.get_issues(state="closed", direction="asc")[start_id:end_id]
 
     for issue in issues:
         if issue.number > MAX_ISSUE_ID:
