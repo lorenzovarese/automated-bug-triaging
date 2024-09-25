@@ -43,11 +43,11 @@ def pull_issues(
     repo = g.get_repo(github_repo)
     issues = repo.get_issues(state="closed", direction="asc")
 
-    with tqdm(total=issues.totalCount, ncols= 100) as pbar:
+    with tqdm(total=issues.totalCount, ncols= 200) as pbar:
         for issue in issues:
-            if issue.number > MAX_ISSUE_ID:
-                break
-            if len(issue.assignees) != 1:
+            pbar.update(1)
+            pbar.set_description(f"Processing issue {issue.number}")
+            if issue.number > MAX_ISSUE_ID or len(issue.assignees) != 1:
                 continue
 
             issue_info = {
@@ -56,8 +56,6 @@ def pull_issues(
                 "body": issue.body,
             }
             ret.append(issue_info)
-            pbar.update(1)
-            pbar.set_description(f"Processing issue {issue.number}")
 
     df = pd.DataFrame(ret)
     df.to_json(ISSUES_FILE, orient="records")
@@ -66,15 +64,16 @@ def pull_issues(
 
 if __name__ == "__main__":
     # Example of usage
-    df = pull_issues("microsoft/vscode", force_pull=True)
+    df = pull_issues("microsoft/vscode")
     print(df.head())
     print(df.shape)
-    df_train = df[df["github_id"] < 210_000]
 
-    df_recent = df[(190_000 <= df_train["github_id"]) & (df_train["github_id"] <= 210_000)]
-
+    df_train = df[df["github_id"] <= 210_000]
+    df_recent = df[(190_000 <= df["github_id"]) & (df["github_id"] <= 210_000)]
     df_test = df[(210_000 < df["github_id"]) & (df["github_id"] <= 220_000)]
 
-    print(f"Train: {df_train.shape[0]}")
-    print(f"Recent: {df_recent.shape[0]}")
-    print(f"Test: {df_test.shape[0]}")
+    print(f"Train size (id <= 210'000): {df_train.shape[0]}")
+    print(f"Recent size (190'000 <= id <= 210'000): {df_recent.shape[0]}")
+    print(f"Test size (210'000 < id <= 220'000): {df_test.shape[0]}")
+
+    print(df.github_id.describe())
