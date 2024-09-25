@@ -66,7 +66,7 @@ if __name__ == "__main__":
     # Example of usage
     df = pull_issues("microsoft/vscode")
     print(df.head())
-    print(df.shape)
+    print("Number of issues pulled: ", df.shape[0])
 
     df_train = df[df["github_id"] <= 210_000]
     df_recent = df[(190_000 <= df["github_id"]) & (df["github_id"] <= 210_000)]
@@ -75,5 +75,3 @@ if __name__ == "__main__":
     print(f"Train size (id <= 210'000): {df_train.shape[0]}")
     print(f"Recent size (190'000 <= id <= 210'000): {df_recent.shape[0]}")
     print(f"Test size (210'000 < id <= 220'000): {df_test.shape[0]}")
-
-    print(df.github_id.describe())
