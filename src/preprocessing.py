@@ -1,46 +1,29 @@
 import os
-import json
-import zipfile
-from collections import Counter
 import re
 import nltk
-import random
-from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
 from tqdm import tqdm
+import pandas as pd
+from pandarallel import pandarallel
+from typing import Tuple, List
+from pull_issues import pull_issues
 
-# Ensure NLTK stopwords are downloaded
+# Ensure NLTK resources are downloaded
+nltk.download('punkt_tab', quiet=True)
 nltk.download('stopwords', quiet=True)
 
-def unzip_issues_data(zip_path, extract_path):
-    """Unzips the issues JSON file."""
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_path)
+# Define stop words and stemmer globally to avoid reloading them in each function call
+stop_words = set(stopwords.words('english'))
+stemmer = PorterStemmer()
 
-def read_issues(json_path):
-    """Reads the issues from a JSON file."""
-    with open(json_path, 'r', encoding='utf-8') as f:
-        issues = json.load(f)
-    return issues
+# Initialize pandarallel with all available cores
+pandarallel.initialize(progress_bar=True)
 
-def extract_relevant_fields(issues):
-    """Extracts relevant fields from each issue."""
-    extracted_issues = []
-    for issue in issues:
-        issue_id = issue.get('github_id')
-        title = issue.get('title')
-        body = issue.get('body')
-        assignee = issue.get('assignee')
-        extracted_issues.append({
-            'github_id': issue_id,
-            'title': title,
-            'body': body,
-            'assignee': assignee
-        })
-    return extracted_issues
-
-def extract_code_snippets(text):
+def extract_code_snippets(text: str) -> Tuple[List[str], str]:
     """Extracts code snippets from the issue body and returns both the code snippets and the remaining text."""
+    if text is None:
+        return [], ''
     code_pattern = re.compile(r'```(.*?)```', re.DOTALL)
     # Find all code blocks
     code_snippets = code_pattern.findall(text)
@@ -48,138 +31,128 @@ def extract_code_snippets(text):
     cleaned_text = code_pattern.sub('', text)
     return code_snippets, cleaned_text
 
-def extract_images_and_links(text):
+def extract_images_and_links(text: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], str]:
     """Extracts markdown-style images and links from the text."""
+    if text is None:
+        return [], [], ''
     # Pattern for markdown images: ![alt_text](url)
     image_pattern = re.compile(r'!\[(.*?)\]\((.*?)\)')
     
     # Pattern for markdown links: [text](url), but not starting with !
     link_pattern = re.compile(r'(?<!!)\[(.*?)\]\((.*?)\)')
-
+    
     images = image_pattern.findall(text)
     links = link_pattern.findall(text)
-
+    
     # Remove the images and links from the text to clean it up
     text_cleaned = image_pattern.sub('', text)
     text_cleaned = link_pattern.sub('', text_cleaned)
+    
+    return images, links, text_cleaned
 
-    # Format images and links into readable form
-    images_list = [{'alt_text': alt, 'url': url} for alt, url in images]
-    links_list = [{'text': text, 'url': url} for text, url in links]
-
-    return images_list, links_list, text_cleaned
-
-def filter_single_assignee(issues):
-    """Keeps only issues with exactly one assignee."""
-    filtered_issues = [issue for issue in issues if issue['assignee'] and isinstance(issue['assignee'], str)]
-    return filtered_issues
-
-def remove_infrequent_assignees(issues, min_assignments=5):
+def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 5) -> pd.DataFrame:
     """Removes issues assigned to infrequent assignees."""
-    assignee_counts = Counter(issue['assignee'] for issue in issues)
-    frequent_assignees = {assignee for assignee, count in assignee_counts.items() if count >= min_assignments}
-    filtered_issues = [issue for issue in issues if issue['assignee'] in frequent_assignees]
-    return filtered_issues
+    assignee_counts = issues_df['assignee'].value_counts()
+    frequent_assignees = assignee_counts[assignee_counts >= min_assignments].index
+    return issues_df[issues_df['assignee'].isin(frequent_assignees)]
 
-def split_identifiers(text):
+def split_identifiers(text: str) -> str:
     """Splits identifiers in camelCase and snake_case."""
-    # Split camelCase
-    text = re.sub('([a-z])([A-Z])', r'\1 \2', text)
-    # Replace underscores with spaces
+    # Split camelCase (e.g., "camelCase" -> "camel Case")
+    text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+    # Replace underscores with spaces (e.g., "snake_case" -> "snake case")
     text = text.replace('_', ' ')
     return text
 
-def preprocess_text(text):
+def preprocess_text(text: str) -> str:
     """Performs text preprocessing."""
+    if pd.isna(text):
+        return ""
+    
+    # Ensure text is a string
+    if not isinstance(text, str):
+        text = str(text)
+    
     # Convert to lowercase
     text = text.lower()
-    # Remove punctuation
+    # Remove punctuation and non-word characters
     text = re.sub(r'[^\w\s]', ' ', text)
     # Split identifiers
     text = split_identifiers(text)
-    # Tokenize
-    tokens = text.split()
-    # Remove stopwords
-    stop_words = set(stopwords.words('english'))
+    # Tokenize the text
+    tokens = nltk.word_tokenize(text)
+    # Remove stop words
     tokens = [word for word in tokens if word not in stop_words]
     # Stemming
-    stemmer = PorterStemmer()
     tokens = [stemmer.stem(word) for word in tokens]
-    # Rejoin tokens
+    # Rejoin tokens into a single string
     preprocessed_text = ' '.join(tokens)
     return preprocessed_text
 
-def preprocess_issues(issues):
+def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
     """Applies text preprocessing to issue titles and bodies, extracts code snippets, images, and links."""
-    preprocessed_issues = []
     
-    # Add progress bar with tqdm
-    for issue in tqdm(issues, desc="Preprocessing Issues", unit="issue"):
-        preprocessed_title = preprocess_text(issue['title'])
-        
-        # Extract code snippets, images, and links
-        code_snippets, body_without_code = extract_code_snippets(issue['body'])
-        images, links, body_without_code_or_images = extract_images_and_links(body_without_code)
-        
-        preprocessed_body = preprocess_text(body_without_code_or_images)
-        
-        preprocessed_issue = {
-            'github_id': issue['github_id'],
-            'title': preprocessed_title,
-            'body': preprocessed_body,
-            'assignee': issue['assignee'],
-            'code_snippets': code_snippets,  
-            'images': images,                
-            'links': links                   
-        }
-        preprocessed_issues.append(preprocessed_issue)
-    return preprocessed_issues
+    print("\nPreprocessing issue titles in parallel...")
+    issues_df['preprocessed_title'] = issues_df['title'].parallel_apply(preprocess_text)
+    
+    print("\nExtracting code snippets from issue bodies...")
+    issues_df['code_snippets'], issues_df['body_without_code'] = zip(*issues_df['body'].apply(extract_code_snippets))
+    
+    print("\nExtracting images and links from issue bodies...")
+    issues_df['images'], issues_df['links'], issues_df['preprocessed_body'] = zip(*issues_df['body_without_code'].apply(extract_images_and_links))
+    
+    print("\nPreprocessing issue bodies in parallel...")
+    issues_df['preprocessed_body'] = issues_df['preprocessed_body'].parallel_apply(preprocess_text)
+    
+    # TODO(lorenzovarese): return issues_df[['github_id', 'preprocessed_title', 'preprocessed_body', 'assignee', 'code_snippets', 'images', 'links']]
+    return issues_df[['github_id', 'preprocessed_title', 'preprocessed_body', 'code_snippets', 'images', 'links']]
 
-def split_data(issues, train_ratio=0.8):
-    """Splits data into training and test sets."""
-    split_index = int(len(issues) * train_ratio) # TODO(lorenzovarese): fix the number of issues
-    train_set = issues[:split_index]
-    test_set = issues[split_index:]
+def split_data(issues_df: pd.DataFrame, train_range: Tuple[int, int], test_range: Tuple[int, int]) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Splits DataFrame into training and test sets based on specified issue number ranges."""
+    # Extract the start and end points for the training and testing ranges
+    train_start, train_end = train_range
+    test_start, test_end = test_range
+
+    # Filter the DataFrame based on the specified ranges
+    train_set = issues_df[(issues_df['github_id'] >= train_start) & (issues_df['github_id'] <= train_end)]
+    test_set = issues_df[(issues_df['github_id'] >= test_start) & (issues_df['github_id'] <= test_end)]
     return train_set, test_set
 
-def save_data(dataset, path):
-    """Saves the dataset to a JSON file."""
+def save_data(dataset_df: pd.DataFrame, path: str) -> None:
+    """Saves the DataFrame to a JSON file."""
+    
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(dataset, f, ensure_ascii=False, indent=2)
+    dataset_df.to_json(path, orient='records', indent=2)
 
-def main():
-    # Paths
-    res_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res'))
-    zip_path = os.path.join(res_folder, 'issues.json.zip')
-    extract_path = os.path.join(res_folder)
-    json_path = os.path.join(extract_path, 'issues.json')
-
-    # Unzip issues data
-    unzip_issues_data(zip_path, extract_path)
-
+def main() -> None:
+    """Main function to execute the pipeline."""
+    
     # Read issues
-    issues = read_issues(json_path)
+    issues_df = pull_issues("microsoft/vscode")
+    
+    assert isinstance(issues_df, pd.DataFrame), f"Expected 'issues_df' to be a DataFrame but got {type(issues_df)}"
 
-    # Extract relevant fields
-    issues = extract_relevant_fields(issues)
-
-    # Filter issues with exactly one assignee
-    issues = filter_single_assignee(issues)
+    print(f"\nTotal issues pulled: {issues_df.shape[0]}")
 
     # Remove infrequent assignees (developers with less than 5 assignments)
-    issues = remove_infrequent_assignees(issues, min_assignments=5)
+    # TODO(lorenzovarese): issues_df = remove_infrequent_assignees(issues_df, min_assignments=5)
 
     # Preprocess text in issues
-    issues = preprocess_issues(issues)
+    issues_df = preprocess_issues(issues_df)
 
     # Split data into training and test sets
-    train_set, test_set = split_data(issues, train_ratio=0.8)
+    train_range = (1, 210000)
+    test_range = (210001, 220000)
+    train_set, test_set = split_data(issues_df, train_range, test_range)
 
     # Create folder structure and save datasets
     train_path = os.path.join('data', 'train', 'train_issues.json')
     test_path = os.path.join('data', 'test', 'test_issues.json')
+    
+    print(f"\nSaving training dataset to {train_path} with {train_set.shape[0]} issues")
     save_data(train_set, train_path)
+    
+    print(f"\nSaving test dataset to {test_path} with {test_set.shape[0]} issues")
     save_data(test_set, test_path)
 
 if __name__ == '__main__':

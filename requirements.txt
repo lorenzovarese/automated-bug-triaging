@@ -1,3 +1,4 @@
 nltk>=3.9.1
 pygithub>=2.4.0
 pandas>=2.2.3
+pandarallel>=1.6.5
