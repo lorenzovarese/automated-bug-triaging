@@ -196,7 +196,6 @@ def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
     issues_df['links'] = markdown_results.apply(lambda x: x[2])
     issues_df['cleaned_body'] = markdown_results.apply(lambda x: x[3])
 
-    # Drop the 'body' column as per your requirement
     issues_df.drop(columns=['body'], inplace=True)
 
     print("\nPreprocessing cleaned issue bodies in parallel...")
@@ -238,7 +237,6 @@ def save_data(dataset_df: pd.DataFrame, path: str) -> None:
     dataset_df.to_json(path, orient='records', indent=2)
 
 def main() -> None:
-    # Read issues
     issues_df = pull_issues("microsoft/vscode")
     
     assert isinstance(issues_df, pd.DataFrame), f"Expected 'issues_df' to be a DataFrame but got {type(issues_df)}"
@@ -257,7 +255,7 @@ def main() -> None:
     print(f"\nSaving training dataset to {train_path} with {train_set.shape[0]} issues")
     save_data(train_set, train_path)
     
-    print(f"\nSaving test dataset to {test_path} with {test_set.shape[0]} issues")
+    print(f"Saving test dataset to {test_path} with {test_set.shape[0]} issues")
     save_data(test_set, test_path)
 
 if __name__ == '__main__':
