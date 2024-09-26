@@ -54,7 +54,7 @@ def pull_issues(
                 "github_id": issue.number,
                 "title": issue.title,
                 "body": issue.body,
-                "assignee": issue.assignee.login,
+                "assignee": issue.assignees[0].login,
                 "created_at": issue.created_at,
                 "closed_at": issue.closed_at,
             }
