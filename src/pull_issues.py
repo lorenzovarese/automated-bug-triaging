@@ -47,7 +47,7 @@ def pull_issues(
         for issue in issues:
             pbar.update(1)
             pbar.set_description(f"Processing issue {issue.number}")
-            if issue.number > MAX_ISSUE_ID or len(issue.assignees) != 1:
+            if issue.number > MAX_ISSUE_ID or len(issue.assignees) != 1 or "/pull/" in issue.html_url:
                 continue
 
             issue_info = {
