@@ -47,13 +47,16 @@ def pull_issues(
         for issue in issues:
             pbar.update(1)
             pbar.set_description(f"Processing issue {issue.number}")
-            if issue.number > MAX_ISSUE_ID or len(issue.assignees) != 1:
+            if issue.number > MAX_ISSUE_ID or len(issue.assignees) != 1 or "/pull/" in issue.html_url:
                 continue
 
             issue_info = {
                 "github_id": issue.number,
                 "title": issue.title,
                 "body": issue.body,
+                "assignee": issue.assignees[0].login,
+                "created_at": issue.created_at,
+                "closed_at": issue.closed_at,
             }
             ret.append(issue_info)
 
