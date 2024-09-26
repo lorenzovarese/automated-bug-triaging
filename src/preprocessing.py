@@ -21,7 +21,15 @@ stemmer = PorterStemmer()
 pandarallel.initialize(progress_bar=True)
 
 def extract_code_snippets(text: str) -> Tuple[List[str], str]:
-    """Extracts code snippets from the issue body and returns both the code snippets and the remaining text."""
+    """
+    Extract code snippets from the text and return them along with the remaining text.
+
+    Args:
+        text (str): The text containing potential code snippets.
+
+    Returns:
+        Tuple[List[str], str]: A list of code snippets and the cleaned text with code removed.
+    """
     if text is None:
         return [], ''
     code_pattern = re.compile(r'```(.*?)```', re.DOTALL)
@@ -32,7 +40,18 @@ def extract_code_snippets(text: str) -> Tuple[List[str], str]:
     return code_snippets, cleaned_text
 
 def extract_images_and_links(text: str) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]], str]:
-    """Extracts markdown-style images and links from the text."""
+    """
+    Extract markdown-style images and links from the text and return them along with the cleaned text.
+
+    Args:
+        text (str): The text containing markdown-style images and links.
+
+    Returns:
+        Tuple[List[Tuple[str, str]], List[Tuple[str, str]], str]: A tuple containing:
+            - A list of tuples (alt_text, url) for images.
+            - A list of tuples (text, url) for links.
+            - The cleaned text with images and links removed.
+    """
     if text is None:
         return [], [], ''
     # Pattern for markdown images: ![alt_text](url)
@@ -51,21 +70,47 @@ def extract_images_and_links(text: str) -> Tuple[List[Tuple[str, str]], List[Tup
     return images, links, text_cleaned
 
 def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 5) -> pd.DataFrame:
-    """Removes issues assigned to infrequent assignees."""
+    """
+    Filter out issues assigned to developers with fewer than a specified number of assignments.
+
+    Args:
+        issues_df (pd.DataFrame): The DataFrame containing issue data.
+        min_assignments (int): The minimum number of assignments to keep an assignee.
+
+    Returns:
+        pd.DataFrame: A filtered DataFrame containing only issues with frequent assignees.
+    """
     assignee_counts = issues_df['assignee'].value_counts()
     frequent_assignees = assignee_counts[assignee_counts >= min_assignments].index
     return issues_df[issues_df['assignee'].isin(frequent_assignees)]
 
 def split_identifiers(text: str) -> str:
-    """Splits identifiers in camelCase and snake_case."""
+    """
+    Split camelCase and snake_case identifiers into separate words.
+
+    Args:
+        text (str): The text to be split.
+
+    Returns:
+        str: The text with identifiers split into separate words.
+    """
     # Split camelCase (e.g., "camelCase" -> "camel Case")
     text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
     # Replace underscores with spaces (e.g., "snake_case" -> "snake case")
     text = text.replace('_', ' ')
     return text
 
-def preprocess_text(text: str) -> str:
-    """Performs text preprocessing."""
+def preprocess_text_classical(text: str) -> str:
+    """
+    Preprocess the given text by converting it to lowercase, removing punctuation,
+    tokenizing, removing stop words, and applying stemming using classical NLP techniques.
+
+    Args:
+        text (str): The raw text to be preprocessed.
+
+    Returns:
+        str: The preprocessed text, cleaned and transformed for further analysis.
+    """
     if pd.isna(text):
         return ""
     
@@ -90,24 +135,52 @@ def preprocess_text(text: str) -> str:
     return preprocessed_text
 
 def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
-    """Applies text preprocessing to issue titles and bodies, extracts code snippets, images, and links."""
+    """
+    Preprocess issue titles and bodies by applying classical text preprocessing,
+    and extracting code snippets, images, and links.
+
+    Args:
+        issues_df (pd.DataFrame): DataFrame containing raw issue data including titles and bodies.
+
+    Returns:
+        pd.DataFrame: The DataFrame with additional columns containing preprocessed titles, bodies, 
+                      code snippets, images, and links extracted from the issue body.
+    
+    New Columns in the DataFrame:
+        - 'classical_preprocessed_title': Preprocessed issue titles.
+        - 'code_snippets': Extracted code snippets from the issue bodies.
+        - 'images': Extracted images from the issue bodies.
+        - 'links': Extracted links from the issue bodies.
+        - 'cleaned_body': Issue body with code snippets, images, and links removed.
+        - 'classical_preprocessed_body': Preprocessed version of the cleaned issue body.
+    """
     
     print("\nPreprocessing issue titles in parallel...")
-    issues_df['preprocessed_title'] = issues_df['title'].parallel_apply(preprocess_text)
+    issues_df['classical_preprocessed_title'] = issues_df['title'].parallel_apply(preprocess_text_classical)
     
     print("\nExtracting code snippets from issue bodies...")
-    issues_df['code_snippets'], issues_df['body_without_code'] = zip(*issues_df['body'].apply(extract_code_snippets))
+    issues_df['code_snippets'], issues_df['cleaned_body'] = zip(*issues_df['body'].apply(extract_code_snippets))
     
     print("\nExtracting images and links from issue bodies...")
-    issues_df['images'], issues_df['links'], issues_df['preprocessed_body'] = zip(*issues_df['body_without_code'].apply(extract_images_and_links))
+    issues_df['images'], issues_df['links'], issues_df['cleaned_body'] = zip(*issues_df['cleaned_body'].apply(extract_images_and_links))
     
     print("\nPreprocessing issue bodies in parallel...")
-    issues_df['preprocessed_body'] = issues_df['preprocessed_body'].parallel_apply(preprocess_text)
+    issues_df['classical_preprocessed_body'] = issues_df['cleaned_body'].parallel_apply(preprocess_text_classical)
     
     return issues_df
 
 def split_data(issues_df: pd.DataFrame, train_range: Tuple[int, int], test_range: Tuple[int, int]) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Splits DataFrame into training and test sets based on specified issue number ranges."""
+    """
+    Split the issues DataFrame into training and test sets based on specified ranges of GitHub IDs.
+
+    Args:
+        issues_df (pd.DataFrame): The DataFrame containing the issues.
+        train_range (Tuple[int, int]): The range of GitHub IDs for the training set.
+        test_range (Tuple[int, int]): The range of GitHub IDs for the test set.
+
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: A tuple containing the training and test DataFrames.
+    """
     # Extract the start and end points for the training and testing ranges
     train_start, train_end = train_range
     test_start, test_end = test_range
@@ -118,13 +191,20 @@ def split_data(issues_df: pd.DataFrame, train_range: Tuple[int, int], test_range
     return train_set, test_set
 
 def save_data(dataset_df: pd.DataFrame, path: str) -> None:
-    """Saves the DataFrame to a JSON file."""
-    
+    """
+    Save the DataFrame as a JSON file at the specified path.
+
+    Args:
+        dataset_df (pd.DataFrame): The DataFrame to be saved.
+        path (str): The file path where the JSON file will be saved.
+
+    Returns:
+        None
+    """
     os.makedirs(os.path.dirname(path), exist_ok=True)
     dataset_df.to_json(path, orient='records', indent=2)
 
 def main() -> None:
-    """Main function to execute the pipeline."""
     
     # Read issues
     issues_df = pull_issues("microsoft/vscode")
