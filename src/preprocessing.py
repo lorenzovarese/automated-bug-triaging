@@ -104,8 +104,7 @@ def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
     print("\nPreprocessing issue bodies in parallel...")
     issues_df['preprocessed_body'] = issues_df['preprocessed_body'].parallel_apply(preprocess_text)
     
-    # TODO(lorenzovarese): return issues_df[['github_id', 'preprocessed_title', 'preprocessed_body', 'assignee', 'code_snippets', 'images', 'links']]
-    return issues_df[['github_id', 'preprocessed_title', 'preprocessed_body', 'code_snippets', 'images', 'links']]
+    return issues_df
 
 def split_data(issues_df: pd.DataFrame, train_range: Tuple[int, int], test_range: Tuple[int, int]) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Splits DataFrame into training and test sets based on specified issue number ranges."""
@@ -135,7 +134,7 @@ def main() -> None:
     print(f"\nTotal issues pulled: {issues_df.shape[0]}")
 
     # Remove infrequent assignees (developers with less than 5 assignments)
-    # TODO(lorenzovarese): issues_df = remove_infrequent_assignees(issues_df, min_assignments=5)
+    issues_df = remove_infrequent_assignees(issues_df, min_assignments=5)
 
     # Preprocess text in issues
     issues_df = preprocess_issues(issues_df)
