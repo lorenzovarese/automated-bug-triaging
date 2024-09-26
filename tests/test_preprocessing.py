@@ -1,78 +1,67 @@
 import unittest
+import pandas as pd
 from src.preprocessing import (
-    extract_relevant_fields,
-    extract_code_snippets,
-    extract_images_and_links,
-    preprocess_text,
-    filter_single_assignee,
-    remove_infrequent_assignees
+    clean_html_and_symbols,
+    extract_markdown_elements,
+    remove_infrequent_assignees,
+    preprocess_text_classical,
+    preprocess_issues,
+    split_data
 )
 
 class TestPreprocessing(unittest.TestCase):
 
     def setUp(self):
-        # Sample data for tests
-        self.sample_issues = [
-            {
-                "github_id": 1,
-                "title": "Sample Issue 1",
-                "body": "This is a sample body. \n```python\nprint('Hello World')\n```",
-                "assignee": "user1"
-            },
-            {
-                "github_id": 2,
-                "title": "Sample Issue 2",
-                "body": "Another body with an image ![image](https://example.com/image.png) and a link [example](https://example.com).",
-                "assignee": "user2"
-            },
-            {
-                "github_id": 3,
-                "title": "Sample Issue 3",
-                "body": "Body without code or images.",
-                "assignee": None
-            },
-            {
-                "github_id": 4,
-                "title": "Sample Issue 4",
-                "body": "Text with a link but no image [example](https://example.com).",
-                "assignee": "user1"
-            }
+        # Sample data to be used in the tests
+        self.sample_data = [
+            {"github_id": 1, "title": "Issue 1", "body": "This is a body with code\n```python\nprint('hello')\n```", "assignee": "user1"},
+            {"github_id": 2, "title": "Issue 2", "body": "Body with image ![image](https://example.com/image.png)", "assignee": "user2"},
+            {"github_id": 3, "title": "Issue 3", "body": "Body with link [link](https://example.com)", "assignee": "user1"},
+            {"github_id": 4, "title": "Issue 4", "body": "No code or images.", "assignee": None}
         ]
+        self.issues_df = pd.DataFrame(self.sample_data)
 
-    def test_extract_relevant_fields(self):
-        extracted = extract_relevant_fields(self.sample_issues)
-        self.assertEqual(len(extracted), 4)
-        self.assertEqual(extracted[0]['github_id'], 1)
-        self.assertIn('title', extracted[0])
-        self.assertIn('body', extracted[0])
-        self.assertIn('assignee', extracted[0])
+    def test_clean_html_and_symbols(self):
+        # Test for removing HTML and encoded symbols
+        text = "<p>This is a test &nbsp; with special symbols \u2022</p>"
+        cleaned_text = clean_html_and_symbols(text)
+        self.assertEqual(cleaned_text, "This is a test   with special symbols ")
 
-    def test_extract_code_snippets(self):
-        code_snippets, cleaned_text = extract_code_snippets(self.sample_issues[0]['body'])
+    def test_extract_markdown_elements(self):
+        # Test markdown element extraction
+        text = "Here is some code: ```python\nprint('hello')\n``` and an image ![image](https://example.com/image.png)"
+        code_snippets, images, links, cleaned_body = extract_markdown_elements(text)
         self.assertEqual(len(code_snippets), 1)
-        self.assertIn("print('Hello World')", code_snippets[0])
-        self.assertNotIn('```', cleaned_text)
-
-    def test_extract_images_and_links(self):
-        images, links, cleaned_text = extract_images_and_links(self.sample_issues[1]['body'])
+        self.assertIn("print('hello')", code_snippets[0])
         self.assertEqual(len(images), 1)
-        self.assertEqual(images[0]['url'], "https://example.com/image.png")
-        self.assertEqual(len(links), 1)
-        self.assertEqual(links[0]['url'], "https://example.com")
-        self.assertNotIn('![image]', cleaned_text)
-        self.assertNotIn('[example]', cleaned_text)
-
-    def test_preprocess_text(self):
-        processed = preprocess_text("This is a Sample text.")
-        self.assertEqual(processed, "sampl text")
-
-    def test_filter_single_assignee(self):
-        filtered = filter_single_assignee(self.sample_issues)
-        self.assertEqual(len(filtered), 3)  # Issue 3 has no assignee, so should be excluded
+        self.assertEqual(images[0], ('No Alt Text', 'https://example.com/image.png'))
+        self.assertEqual(cleaned_body.strip(), "Here is some code:  and an image ")
 
     def test_remove_infrequent_assignees(self):
-        filtered = remove_infrequent_assignees(self.sample_issues, min_assignments=2)
-        self.assertEqual(len(filtered), 2)  # "user1" has 2 assignments, others have fewer
+        # Test for removing infrequent assignees
+        filtered_df = remove_infrequent_assignees(self.issues_df, min_assignments=2)
+        self.assertEqual(filtered_df.shape[0], 2)  # Only "user1" appears twice
+
+    def test_preprocess_text_classical(self):
+        # Test text preprocessing
+        raw_text = "This is a sample TEXT, with punctuation!"
+        processed_text = preprocess_text_classical(raw_text)
+        self.assertEqual(processed_text, "sampl text punctuat")
+
+    def test_preprocess_issues(self):
+        # Test the entire preprocessing workflow on issues
+        preprocessed_df = preprocess_issues(self.issues_df)
+        self.assertIn('classical_preprocessed_title', preprocessed_df.columns)
+        self.assertIn('code_snippets', preprocessed_df.columns)
+        self.assertIn('images', preprocessed_df.columns)
+        self.assertIn('cleaned_body', preprocessed_df.columns)
+        self.assertEqual(preprocessed_df.shape[0], 4)  # Ensure all rows are kept
+
+    def test_split_data(self):
+        # Test the data split function based on ranges
+        train_set, test_set = split_data(self.issues_df, (1, 2), (3, 4))
+        self.assertEqual(train_set.shape[0], 2)  # IDs 1 and 2 should be in train set
+        self.assertEqual(test_set.shape[0], 2)   # IDs 3 and 4 should be in test set
 
 if __name__ == '__main__':
     unittest.main()
