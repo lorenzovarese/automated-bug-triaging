@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+import nltk
 
 from src.preprocessing import (
     clean_html_and_symbols,
@@ -13,6 +14,10 @@ from src.preprocessing import (
     preprocess_issues,
     split_data
 )
+
+# Ensure NLTK resources are downloaded
+nltk.download('punkt', quiet=True)
+nltk.download('stopwords', quiet=True)
 
 class TestPreprocessingFunctions(unittest.TestCase):
 
