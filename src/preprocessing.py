@@ -7,8 +7,6 @@ import pandas as pd
 from pandarallel import pandarallel
 from typing import Tuple, List
 
-from pull_issues import pull_issues
-
 # Ensure NLTK resources are downloaded
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -411,6 +409,8 @@ def main() -> None:
         Exception: If any step in the pipeline fails.
     """
     try:
+        from pull_issues import pull_issues
+        
         issues_df = pull_issues("microsoft/vscode")
         assert isinstance(issues_df, pd.DataFrame), f"Expected 'issues_df' to be a DataFrame but got {type(issues_df)}"
 
