@@ -12,6 +12,9 @@ from typing import Tuple, List
 
 from pull_issues import pull_issues
 
+import multiprocessing
+
+
 # Ensure NLTK resources are downloaded
 nltk.download('punkt_tab', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -20,7 +23,7 @@ nltk.download('stopwords', quiet=True)
 stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 
-pandarallel.initialize(nb_workers=7, progress_bar=True)
+pandarallel.initialize(nb_workers=min(100, multiprocessing.cpu_count()-1), progress_bar=True)
 
 def clean_html_and_symbols(text: str) -> str:
     """
