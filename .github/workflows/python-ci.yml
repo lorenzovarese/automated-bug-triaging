@@ -27,8 +27,7 @@ jobs:
 
     - name: Download nltk libraries
       run: |
-        python -c "
-          import nltk;nltk.download('punkt_tab');nltk.download('stopwords');"
+        python -c "import nltk;nltk.download('punkt_tab');nltk.download('stopwords');"
       
     - name: Run tests
       run: |
