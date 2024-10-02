@@ -24,7 +24,10 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi
         pip install -r requirements.txt
-        python -m nltk.downloader punkt stopwords
+
+    - name: Download nltk libraries
+      run: |
+        python -m nltk.downloader punkt_tab stopwords
       
     - name: Run tests
       run: |
