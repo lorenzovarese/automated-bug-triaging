@@ -49,7 +49,6 @@ def get_creation_labels(issue_id, repo: Repository) -> str:
                 created_labels.append(label_name)
 
     return " ".join(created_labels)
-    # return created_labels
 
 
 def create_labeled_issues():
