@@ -5,7 +5,7 @@ from github import Auth
 from github.Repository import Repository
 
 ORIGINAL_ISSUES_FILE = "../res/issues.json.zip"  # ../res/ o res/
-LABELED_ISSUES_FILE = "../res/labeled_issues.json"
+LABELED_ISSUES_FILE = "../res/labeled_issues.json.zip"
 SECONDS_TO_LABEL = 60  # Secondi entro i quali l'etichetta deve essere stata aggiunta
 REPOSITORY = "microsoft/vscode"
 AUTH_TOKEN = "INSERT_YOUR_TOKEN"
