@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import time
 import pandas as pd
 from dotmap import DotMap
 from github import Github
@@ -57,7 +58,7 @@ def parse_arguments():
     return args
 
 
-def get_repo(token, repository) -> Repository:
+def get_git(token) -> Github:
     if token == "INSERT_YOUR_TOKEN":
         assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
         auth_token = os.environ["GITHUB_AUTH_TOKEN"]
@@ -66,8 +67,7 @@ def get_repo(token, repository) -> Repository:
         auth_token = token
 
     auth = Auth.Token(auth_token)
-    g = Github(auth=auth)
-    return g.get_repo(repository)
+    return Github(auth=auth)
 
 
 def get_creation_labels(issue_id, repo: Repository, seconds) -> str:
@@ -95,6 +95,20 @@ def get_creation_labels(issue_id, repo: Repository, seconds) -> str:
     return " ".join(created_labels)
 
 
+def check_rate_limit(g):
+    rate_limit = g.get_rate_limit()
+    reset_time = g.get_rate_limit().core.reset.timestamp()
+    sleep_time = reset_time - time.time() + 60
+    print("remaining: " + str(rate_limit.core.remaining) + "    next reset: " + str(int(sleep_time)) + " seconds")
+    if rate_limit.core.remaining < 150:
+        print("Sleeping for " + str(int(sleep_time)) + " seconds")
+        if sleep_time < 0:
+            sleep_time = 3600
+            print("Something went wrong, sleeping for 1 hour")
+        time.sleep(int(sleep_time))
+        check_rate_limit(g)
+
+
 def create_labeled_issues(args, testing=False):
     """
     Create new labeled file by fetching labels added within a specific time frame.
@@ -105,8 +119,8 @@ def create_labeled_issues(args, testing=False):
 
     testing: False to run all the issues, otherwise the number of first issues to run
     """
-
-    repo = get_repo(args.token, args.repository)
+    git = get_git(args.token)
+    repo = git.get_repo(args.repository)
     df = pd.read_json(args.path, orient="records")
     records = df.to_dict(orient="records")
     dot_records = [DotMap(record) for record in records]
@@ -114,6 +128,7 @@ def create_labeled_issues(args, testing=False):
     n = -1
     for issue in dot_records:
         n += 1
+        if (n + 50) % 50 == 0: check_rate_limit(git)
         issue.creation_labels = get_creation_labels(issue.github_id, repo, args.seconds)
         print("N: " + str(n) + " G_ID: " + str(issue.github_id) + " labels: " + issue.creation_labels)
         if (testing != False) and (n >= testing): break
@@ -129,3 +144,4 @@ def create_labeled_issues(args, testing=False):
 if __name__ == "__main__":
     arguments = parse_arguments()
     create_labeled_issues(arguments)
+    print("Done!")
