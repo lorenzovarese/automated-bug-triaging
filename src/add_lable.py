@@ -100,10 +100,10 @@ def create_labeled_issues(args, testing=False):
     Create new labeled file by fetching labels added within a specific time frame.
 
     This function reads issues from a JSON file, fetches the labels added to each issue
-    within `SECONDS_TO_LABEL` seconds of its creation, and writes the updated issues
+    within `args.seconds` seconds of its creation, and writes the updated issues
     with their labels to another JSON file.
 
-    testing: False to run all the issues, otherwise the number of firsts issues to run
+    testing: False to run all the issues, otherwise the number of first issues to run
     """
 
     repo = get_repo(args.token, args.repository)
