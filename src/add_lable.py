@@ -100,7 +100,7 @@ def check_rate_limit(g):
     reset_time = g.get_rate_limit().core.reset.timestamp()
     sleep_time = reset_time - time.time() + 60
     print("remaining: " + str(rate_limit.core.remaining) + "    next reset: " + str(int(sleep_time)) + " seconds")
-    if rate_limit.core.remaining < 150:
+    if rate_limit.core.remaining < 250:
         print("Sleeping for " + str(int(sleep_time)) + " seconds")
         if sleep_time < 0:
             sleep_time = 3600
