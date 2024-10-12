@@ -161,7 +161,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 /issues.json
-.idea/vcs.xml
-.idea/misc.xml
-.idea/inspectionProfiles/profiles_settings.xml
-.idea/automated-bug-triaging.iml
+.idea/
