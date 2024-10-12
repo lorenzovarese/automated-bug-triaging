@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from dotmap import DotMap
 from github import Github
@@ -8,13 +9,20 @@ ORIGINAL_ISSUES_FILE = "../res/issues.json.zip"  # ../res/ o res/
 LABELED_ISSUES_FILE = "../res/labeled_issues.json.zip"
 SECONDS_TO_LABEL = 60  # Secondi entro i quali l'etichetta deve essere stata aggiunta
 REPOSITORY = "microsoft/vscode"
-AUTH_TOKEN = "INSERT_YOUR_TOKEN"
+AUTH_TOKEN = "INSERT_YOUR_TOKEN"  # oppure puoi farlo tramite variabile d'ambiente
 
-testing = False  # False to run all the issues, otherwise the number of firsts issues to run
+testing = 2  # False to run all the issues, otherwise the number of firsts issues to run
 
 
 def get_repo() -> Repository:
-    auth = Auth.Token(AUTH_TOKEN)
+    if AUTH_TOKEN == "INSERT_YOUR_TOKEN":
+        assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
+        auth_token = os.environ["GITHUB_AUTH_TOKEN"]
+        assert len(auth_token) > 0, "Please provide a valid authentication token"
+    else:
+        auth_token = AUTH_TOKEN
+
+    auth = Auth.Token(auth_token)
     g = Github(auth=auth)
     return g.get_repo(REPOSITORY)
 
