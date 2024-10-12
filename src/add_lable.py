@@ -10,18 +10,27 @@ SECONDS_TO_LABEL = 60  # Secondi entro i quali l'etichetta deve essere stata agg
 REPOSITORY = "microsoft/vscode"
 AUTH_TOKEN = "INSERT_YOUR_TOKEN"
 
-repo: Repository
 testing = False  # False to run all the issues, otherwise the number of firsts issues to run
 
 
-def init_github():
+def get_repo() -> Repository:
     auth = Auth.Token(AUTH_TOKEN)
     g = Github(auth=auth)
-    global repo
-    repo = g.get_repo(REPOSITORY)
+    return g.get_repo(REPOSITORY)
 
 
-def get_creation_labels(issue_id):
+def get_creation_labels(issue_id, repo: Repository) -> str:
+    """
+    Get the labels that were added to an issue within SECONDS_TO_LABEL seconds of its creation.
+
+    Args:
+        issue_id (int): The ID of the issue.
+        repo (Repository): The GitHub repository object.
+
+    Returns:
+        str: A space-separated string of label names.
+    """
+
     issue = repo.get_issue(number=issue_id)
     events = issue.get_timeline()
     created_labels = []
@@ -36,6 +45,15 @@ def get_creation_labels(issue_id):
 
 
 def create_labeled_issues():
+    """
+    Create new labeled file by fetching labels added within a specific time frame.
+
+    This function reads issues from a JSON file, fetches the labels added to each issue
+    within `SECONDS_TO_LABEL` seconds of its creation, and writes the updated issues
+    with their labels to another JSON file.
+    """
+
+    repo = get_repo()
     df = pd.read_json(ORIGINAL_ISSUES_FILE, orient="records")
     records = df.to_dict(orient="records")
     dot_records = [DotMap(record) for record in records]
@@ -43,7 +61,7 @@ def create_labeled_issues():
     n = -1
     for issue in dot_records:
         n += 1
-        issue.creation_labels = get_creation_labels(issue.github_id)
+        issue.creation_labels = get_creation_labels(issue.github_id, repo)
         print("N: " + str(n) + " G_ID: " + str(issue.github_id) + " labels: " + issue.creation_labels)
         if (testing != False) and (n >= testing): break
 
@@ -54,5 +72,5 @@ def create_labeled_issues():
 
 
 if __name__ == "__main__":
-    init_github()
+    get_repo()
     create_labeled_issues()
