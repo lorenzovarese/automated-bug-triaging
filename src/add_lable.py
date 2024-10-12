@@ -23,7 +23,7 @@ def parse_arguments():
     parser.add_argument(
         "--output",
         type=str,
-        default="labeled_issues.json",
+        default="labeled_issues.json.zip",
         help="The name of the output file. (it will be saved in the same directory as the input file)"
     )
 
