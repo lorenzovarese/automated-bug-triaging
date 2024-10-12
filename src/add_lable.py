@@ -11,7 +11,7 @@ SECONDS_TO_LABEL = 60  # Secondi entro i quali l'etichetta deve essere stata agg
 REPOSITORY = "microsoft/vscode"
 AUTH_TOKEN = "INSERT_YOUR_TOKEN"  # oppure puoi farlo tramite variabile d'ambiente
 
-testing = 2  # False to run all the issues, otherwise the number of firsts issues to run
+testing = False  # False to run all the issues, otherwise the number of firsts issues to run
 
 
 def get_repo() -> Repository:
