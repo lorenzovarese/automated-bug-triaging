@@ -33,7 +33,7 @@ class TestPreprocessingFunctions(unittest.TestCase):
         )
         expected_cleaned_text = "Here is some code:\n\nEnd of code."
         expected_code_snippets = ["def hello():\n    print('Hello World')"]
-        cleaned_text, code_snippets = extract_code_snippets(input_text)
+        code_snippets, cleaned_text = extract_code_snippets(input_text)
         self.assertEqual(cleaned_text, expected_cleaned_text)
         self.assertEqual(code_snippets, expected_code_snippets)
 
