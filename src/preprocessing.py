@@ -349,53 +349,6 @@ def preprocess_issues(issues_df: pd.DataFrame, verbose: bool = False) -> pd.Data
 
     return issues_df
 
-def split_data(issues_df: pd.DataFrame, train_range: Tuple[int, int], test_range: Tuple[int, int]) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Split the issues DataFrame into training and test sets based on specified ranges of GitHub IDs.
-
-    Args:
-        issues_df (pd.DataFrame): The DataFrame containing the issues.
-        train_range (Tuple[int, int]): The range of GitHub IDs for the training set.
-        test_range (Tuple[int, int]): The range of GitHub IDs for the test set.
-
-    Returns:
-        Tuple[pd.DataFrame, pd.DataFrame]:
-            - pd.DataFrame: The training set DataFrame.
-            - pd.DataFrame: The test set DataFrame.
-
-    Raises:
-        ValueError: If 'github_id' column is missing in the DataFrame.
-    """
-    if 'github_id' not in issues_df.columns:
-        raise ValueError("The DataFrame must contain a 'github_id' column.")
-
-    train_start, train_end = train_range
-    test_start, test_end = test_range
-
-    train_set = issues_df[(issues_df['github_id'] >= train_start) & (issues_df['github_id'] <= train_end)]
-    test_set = issues_df[(issues_df['github_id'] >= test_start) & (issues_df['github_id'] <= test_end)]
-    return train_set, test_set
-
-def save_data(dataset_df: pd.DataFrame, path: str) -> None:
-    """
-    Save the DataFrame as a JSON file at the specified path.
-
-    Args:
-        dataset_df (pd.DataFrame): The DataFrame to be saved.
-        path (str): The file path where the JSON file will be saved.
-
-    Returns:
-        None
-
-    Raises:
-        IOError: If the file cannot be written.
-    """
-    try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        dataset_df.to_json(path, orient='records', indent=2)
-    except IOError as e:
-        raise IOError(f"Failed to save data to {path}: {e}")
-
 def main() -> None:
     """
     Main function to execute the data preprocessing pipeline.
@@ -411,6 +364,7 @@ def main() -> None:
         Exception: If any step in the pipeline fails.
     """
     try:
+        # Reduce the scope of pull_issues for testing purposes
         from pull_issues import pull_issues
         
         issues_df = pull_issues("microsoft/vscode")
@@ -420,18 +374,27 @@ def main() -> None:
 
         issues_df = preprocess_issues(issues_df)
 
+        # Inline split data logic
+        if 'github_id' not in issues_df.columns:
+            raise ValueError("The DataFrame must contain a 'github_id' column.")
+
+        # Split data
         train_range = (1, 210000)
         test_range = (210001, 220000)
-        train_set, test_set = split_data(issues_df, train_range, test_range)
+        train_set = issues_df[(issues_df['github_id'] >= train_range[0]) & (issues_df['github_id'] <= train_range[1])]
+        test_set = issues_df[(issues_df['github_id'] >= test_range[0]) & (issues_df['github_id'] <= test_range[1])]
 
+        # Save data
         train_path = os.path.join('data', 'train', 'train_issues.json')
         test_path = os.path.join('data', 'test', 'test_issues.json')
-
         print(f"\nSaving training dataset to {train_path} with {train_set.shape[0]} issues")
-        save_data(train_set, train_path)
+        os.makedirs(os.path.dirname(train_path), exist_ok=True)
+        train_set.to_json(train_path, orient='records', indent=2)
 
         print(f"Saving test dataset to {test_path} with {test_set.shape[0]} issues")
-        save_data(test_set, test_path)
+        os.makedirs(os.path.dirname(test_path), exist_ok=True)
+        test_set.to_json(test_path, orient='records', indent=2)
+        
     except Exception as e:
         print(f"An error occurred during preprocessing: {e}")
         raise

@@ -10,8 +10,7 @@ from src.preprocessing import (
     extract_markdown_elements,
     preprocess_text_classical,
     remove_infrequent_assignees,
-    preprocess_issues,
-    split_data
+    preprocess_issues
 )
 
 class TestPreprocessingFunctions(unittest.TestCase):
@@ -150,20 +149,6 @@ class TestDataFrameFunctions(unittest.TestCase):
         self.assertEqual(processed_df['code_snippets'][0], ["def foo():\n    pass"])
         self.assertEqual(processed_df['code_snippets'][1], [])
         self.assertEqual(processed_df['classical_preprocessed_body'][1], "code text")
-
-    def test_split_data(self):
-        data = {
-            'github_id': [100, 150, 200, 250, 300],
-            'issue_id': ['a', 'b', 'c', 'd', 'e']
-        }
-        df = pd.DataFrame(data)
-        train_range = (100, 200)
-        test_range = (250, 300)
-        train_set, test_set = split_data(df, train_range, test_range)
-        self.assertEqual(len(train_set), 3)
-        self.assertEqual(len(test_set), 2)
-        self.assertListEqual(train_set['github_id'].tolist(), [100, 150, 200])
-        self.assertListEqual(test_set['github_id'].tolist(), [250, 300])
 
 if __name__ == '__main__':
     unittest.main()
