@@ -85,9 +85,18 @@ class TestPreprocessingFunctions(unittest.TestCase):
             "    }\n"
             "}\n"
             "```\n"
-            "| Header1 | Header2 |\n"
+            "| Header1A | Header2B |\n"
             "|---------|---------|\n"
-            "| Cell1   | Cell2   |\n"
+            "| Cell1A   | Cell2B   |\n"
+            "| Header1C | Header2D |\n"
+            "|:--------|---------|\n"
+            "| Cell1C   | Cell2D   |\n"
+            "| Header1E | Header2F |\n"
+            "|:-------:|:-------:|\n"
+            "| Cell1E   | Cell2F   |\n"
+            "| Header1G | Header2H |\n"
+            "|--------:|--------:|\n"
+            "| Cell1G   | Cell2H   |\n"
             "End of markdown."
         )
         expected_cleaned_text = (
@@ -101,8 +110,14 @@ class TestPreprocessingFunctions(unittest.TestCase):
         expected_links = [("Link Text", "http://example.com")]
         expected_tables = [
             [
-                ["Header1", "Header2"],
-                ["Cell1", "Cell2"]
+                ["Header1A", "Header2B"],
+                ["Cell1A", "Cell2B"],
+                ["Header1C", "Header2D"],
+                ["Cell1C", "Cell2D"],
+                ["Header1E", "Header2F"],
+                ["Cell1E", "Cell2F"],
+                ["Header1G", "Header2H"],
+                ["Cell1G", "Cell2H"]
             ]
         ]
         code_snippets, images, links, tables, cleaned_text = extract_markdown_elements(input_text)
