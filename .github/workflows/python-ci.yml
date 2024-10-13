@@ -7,31 +7,31 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the repository
     - name: Check out repository
       uses: actions/checkout@v3
 
-    # Set up Python
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
-    # Install dependencies
-    - name: Install dependencies
+    - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f "src/requirements.txt" ]; then pip install -r src/requirements.txt; fi
+        if [ -f "requirements.txt" ]; then pip install -r requirements.txt; fi
 
-    # Run tests
+    - name: Download nltk libraries
+      run: |
+        python -c "import nltk;nltk.download('punkt_tab');nltk.download('stopwords');"
+      
     - name: Run tests
       run: |
         if [ -d "tests" ]; then
-          python -m unittest discover -s tests
+          PYTHONPATH=src python -m unittest discover tests
         else
           echo "No tests directory found, skipping tests."
         fi
