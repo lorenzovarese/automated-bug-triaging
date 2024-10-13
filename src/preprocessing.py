@@ -7,8 +7,6 @@ import pandas as pd
 from pandarallel import pandarallel
 from typing import Tuple, List
 
-from pull_issues import pull_issues
-
 import multiprocessing
 
 
