@@ -302,12 +302,13 @@ def preprocess_text_classical(text: str) -> str:
     preprocessed_text = ' '.join(tokens)
     return preprocessed_text
 
-def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
+def preprocess_issues(issues_df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
     """
     Preprocess issue titles and bodies by extracting markdown elements and applying text preprocessing.
 
     Args:
         issues_df (pd.DataFrame): DataFrame containing raw issue data including titles and bodies.
+        verbose (bool): If set to True, prints additional information during processing.
 
     Returns:
         pd.DataFrame: The DataFrame with additional columns:
@@ -327,11 +328,11 @@ def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
     if missing_columns:
         raise ValueError(f"The DataFrame is missing required columns: {missing_columns}")
 
-    print("\nPreprocessing issue titles in parallel...")
+    if verbose: print("\nPreprocessing issue titles in parallel...")
     issues_df['classical_preprocessed_title'] = issues_df['title'].parallel_apply(preprocess_text_classical)
 
     # Apply markdown extraction with progress bar
-    print("\nExtracting markdown elements (code snippets, images, links, tables) from issue bodies in parallel...")
+    if verbose: print("\nExtracting markdown elements (code snippets, images, links, tables) from issue bodies in parallel...")
 
     # Create a helper function to return a tuple of extracted elements
     def extract_all_elements(body):
@@ -347,7 +348,7 @@ def preprocess_issues(issues_df: pd.DataFrame) -> pd.DataFrame:
     issues_df['tables'] = markdown_results.apply(lambda x: x[3])
     issues_df['cleaned_body'] = markdown_results.apply(lambda x: x[4])
 
-    print("\nPreprocessing cleaned issue bodies in parallel...")
+    if verbose: print("\nPreprocessing cleaned issue bodies in parallel...")
     issues_df['classical_preprocessed_body'] = issues_df['cleaned_body'].parallel_apply(preprocess_text_classical)
 
     return issues_df
