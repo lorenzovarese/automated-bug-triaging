@@ -334,12 +334,8 @@ def preprocess_issues(issues_df: pd.DataFrame, verbose: bool = False) -> pd.Data
     # Apply markdown extraction with progress bar
     if verbose: print("\nExtracting markdown elements (code snippets, images, links, tables) from issue bodies in parallel...")
 
-    # Create a helper function to return a tuple of extracted elements
-    def extract_all_elements(body):
-        return extract_markdown_elements(body)
-
     # Apply the extraction function in parallel and split the results into individual columns
-    markdown_results = issues_df['body'].parallel_apply(extract_all_elements)
+    markdown_results = issues_df['body'].parallel_apply(extract_markdown_elements)
 
     # Split the tuple results into separate DataFrame columns
     issues_df['code_snippets'] = markdown_results.apply(lambda x: x[0])
