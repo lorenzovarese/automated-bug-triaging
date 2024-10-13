@@ -359,45 +359,37 @@ def main() -> None:
         3. Preprocess issues by extracting markdown elements and cleaning text.
         4. Split data into training and test sets.
         5. Save the datasets to JSON files.
-
-    Raises:
-        Exception: If any step in the pipeline fails.
     """
-    try:
-        # Reduce the scope of pull_issues for testing purposes
-        from pull_issues import pull_issues
-        
-        issues_df = pull_issues("microsoft/vscode")
-        assert isinstance(issues_df, pd.DataFrame), f"Expected 'issues_df' to be a DataFrame but got {type(issues_df)}"
+    # Reduce the scope of pull_issues for testing purposes
+    from pull_issues import pull_issues
+    
+    issues_df = pull_issues("microsoft/vscode")
+    assert isinstance(issues_df, pd.DataFrame), f"Expected 'issues_df' to be a DataFrame but got {type(issues_df)}"
 
-        issues_df = remove_infrequent_assignees(issues_df, min_assignments=50)
+    issues_df = remove_infrequent_assignees(issues_df, min_assignments=50)
 
-        issues_df = preprocess_issues(issues_df)
+    issues_df = preprocess_issues(issues_df)
 
-        # Inline split data logic
-        if 'github_id' not in issues_df.columns:
-            raise ValueError("The DataFrame must contain a 'github_id' column.")
+    # Inline split data logic
+    if 'github_id' not in issues_df.columns:
+        raise ValueError("The DataFrame must contain a 'github_id' column.")
 
-        # Split data
-        train_range = (1, 210000)
-        test_range = (210001, 220000)
-        train_set = issues_df[(issues_df['github_id'] >= train_range[0]) & (issues_df['github_id'] <= train_range[1])]
-        test_set = issues_df[(issues_df['github_id'] >= test_range[0]) & (issues_df['github_id'] <= test_range[1])]
+    # Split data
+    train_range = (1, 210000)
+    test_range = (210001, 220000)
+    train_set = issues_df[(issues_df['github_id'] >= train_range[0]) & (issues_df['github_id'] <= train_range[1])]
+    test_set = issues_df[(issues_df['github_id'] >= test_range[0]) & (issues_df['github_id'] <= test_range[1])]
 
-        # Save data
-        train_path = os.path.join('data', 'train', 'train_issues.json')
-        test_path = os.path.join('data', 'test', 'test_issues.json')
-        print(f"\nSaving training dataset to {train_path} with {train_set.shape[0]} issues")
-        os.makedirs(os.path.dirname(train_path), exist_ok=True)
-        train_set.to_json(train_path, orient='records', indent=2)
+    # Save data
+    train_path = os.path.join('data', 'train', 'train_issues.json')
+    test_path = os.path.join('data', 'test', 'test_issues.json')
+    print(f"\nSaving training dataset to {train_path} with {train_set.shape[0]} issues")
+    os.makedirs(os.path.dirname(train_path), exist_ok=True)
+    train_set.to_json(train_path, orient='records', indent=2)
 
-        print(f"Saving test dataset to {test_path} with {test_set.shape[0]} issues")
-        os.makedirs(os.path.dirname(test_path), exist_ok=True)
-        test_set.to_json(test_path, orient='records', indent=2)
-        
-    except Exception as e:
-        print(f"An error occurred during preprocessing: {e}")
-        raise
+    print(f"Saving test dataset to {test_path} with {test_set.shape[0]} issues")
+    os.makedirs(os.path.dirname(test_path), exist_ok=True)
+    test_set.to_json(test_path, orient='records', indent=2)
 
 if __name__ == '__main__':
     main()
