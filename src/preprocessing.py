@@ -38,9 +38,9 @@ def clean_html_and_symbols(text: str) -> str:
     if not isinstance(text, str):
         raise TypeError("Input text must be a string.")
 
-    text = re.sub(r'<.*?>', '', text)
-    text = re.sub(r'\\u[\da-fA-F]{4}', '', text)
-    text = re.sub(r'[^\x00-\x7F]+', ' ', text)
+    text = re.sub(r'<.*?>', '', text) # Removes HTML tags from the text.
+    text = re.sub(r'\\u[\da-fA-F]{4}', '', text) # Removes Unicode escape sequences represented as raw string literals.
+    text = re.sub(r'[^\x00-\x7F]+', ' ', text) # Replaces non-ASCII characters with a space.
     return text
 
 def extract_code_snippets(text: str) -> Tuple[str, List[str]]:
