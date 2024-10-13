@@ -156,35 +156,37 @@ def extract_tables(text: str) -> Tuple[List[List[List[str]]], str]:
     i = 0
     while i < len(lines):
         line = lines[i]
-        # Check if this line contains a pipe '|' and is not a code block line
-        if '|' in line and not line.strip().startswith('```'):
-            # Potential table start
-            table_lines = [line]
-            i += 1
-            if i < len(lines):
-                separator_line = lines[i]
-                # Check if the next line is a table separator line
-                if re.match(r'^\s*\|?\s*(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
-                    table_lines.append(separator_line)
-                    i += 1
-                    # Collect table body lines
-                    while i < len(lines) and '|' in lines[i] and not lines[i].strip().startswith('```'):
-                        table_lines.append(lines[i])
-                        i += 1
-                    # Add the collected table lines
-                    tables.append(table_lines)
-                    continue  # Skip incrementing i at the end
-                else:
-                    # Not a table separator, add the line to non_table_lines
-                    non_table_lines.append(line)
-                    i -= 1  # Step back to reprocess the separator line
-            else:
-                # End of text, add the line to non_table_lines
-                non_table_lines.append(line)
-        else:
-            # Not a table line, add to non_table_lines
+
+        # Check if this line contains a pipe '|' (table) and is not a code block line
+        if '|' not in line or line.strip().startswith('```'):
             non_table_lines.append(line)
+            i += 1
+            continue
+
+        # Start processing potential table
+        table_lines = [line]
         i += 1
+        if i >= len(lines):
+            non_table_lines.append(line)
+            continue  # End of text, handle as a non-table line
+
+        separator_line = lines[i]
+        # Guard clause for non-separator lines
+        if not re.match(r'^\s*\|?\s*(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
+            non_table_lines.append(line)
+            i -= 1  # Step back to reprocess the separator line
+            continue
+
+        # Valid separator found, add it and proceed to collect table body lines
+        table_lines.append(separator_line)
+        i += 1
+        while i < len(lines) and '|' in lines[i] and not lines[i].strip().startswith('```'):
+            table_lines.append(lines[i])
+            i += 1
+
+        # All lines of the table collected
+        tables.append(table_lines)
+
     # Reconstruct text without tables
     cleaned_text = '\n'.join(non_table_lines)
     # Parse tables into structured data
