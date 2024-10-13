@@ -43,7 +43,7 @@ def clean_html_and_symbols(text: str) -> str:
     text = re.sub(r'[^\x00-\x7F]+', ' ', text) # Replaces non-ASCII characters with a space.
     return text
 
-def extract_code_snippets(text: str) -> Tuple[str, List[str]]:
+def extract_code_snippets(text: str) -> Tuple[List[str], str]:
     """
     Extract code snippets from the text and return the cleaned text without code snippets.
 
@@ -51,9 +51,9 @@ def extract_code_snippets(text: str) -> Tuple[str, List[str]]:
         text (str): The input markdown text containing potential code snippets.
 
     Returns:
-        Tuple[str, List[str]]:
-            - str: The text with code snippets removed.
+        Tuple[List[str], str]:
             - List[str]: A list of extracted code snippets.
+            - str: The text with code snippets removed.
 
     Raises:
         TypeError: If the input text is not a string.
@@ -70,7 +70,7 @@ def extract_code_snippets(text: str) -> Tuple[str, List[str]]:
         return ''
 
     text = code_block_pattern.sub(code_replacer, text)
-    return text, code_snippets
+    return code_snippets, text
 
 def extract_images(text: str) -> Tuple[List[Tuple[str, str]], str]:
     """
@@ -225,7 +225,7 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
         raise TypeError("Input text must be a string.")
 
     # Extract code snippets
-    text, code_snippets = extract_code_snippets(text)
+    code_snippets, text = extract_code_snippets(text)
     # Extract tables
     tables, text = extract_tables(text)
     # Extract images
