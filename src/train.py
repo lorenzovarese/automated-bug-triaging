@@ -1,48 +1,79 @@
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
+from sklearn.model_selection import train_test_split
+import torch
 import pandas as pd
 import datasets
-import os
+import os, multiprocessing
 
+MODEL_NAME = "bert-base-uncased"
+CONTEXT_LENGTH = 512
+NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
 
-tokenizer = AutoTokenizer.from_pretrained("bert-base-uncased")
-def preprocess_data(examples):
-    # take a batch of texts
-    text = examples["cleaned_body"]
-    # encode them
-    encoding = tokenizer(text, padding="max_length", truncation=True, max_length=128)
-    # add label
-    encoding["labels"] = examples["assignee"]
-    
-    return encoding
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 
-def encode_dataset(dataset, force=False, filename="data/encoded_dataset"):
+def tokenize(examples):
+    return tokenizer(examples["cleaned_body"], padding="max_length", truncation=True, max_length=CONTEXT_LENGTH)
+
+def encode_dataset(force=False, filename=os.path.join("data", "encoded_dataset")):
     if not force and os.path.exists(filename):
         return datasets.load_from_disk(filename)
+
+    issues_df = pd.read_json(os.path.join("data", "issues.json"))
+    issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
+
+    train_df = issues_df[issues_df["github_id"] <= 210_000]
+    train_df, valid_df = train_test_split(train_df, test_size=0.1, random_state=42, stratify=train_df["label"])
+    test_df = issues_df[(210_000 < issues_df["github_id"]) & (issues_df["github_id"] <= 220_000)]
+
+    dataset = datasets.DatasetDict({
+        "train": datasets.Dataset.from_pandas(train_df),
+        "test": datasets.Dataset.from_pandas(test_df),
+        "valid": datasets.Dataset.from_pandas(valid_df),
+    })
+    dataset = dataset.filter(lambda x: len(tokenizer(x["cleaned_body"])["input_ids"]) <= CONTEXT_LENGTH, num_proc=NUM_PROC)
     
-    encoded_dataset = dataset.map(preprocess_data, batched=True, remove_columns=dataset['train'].column_names)
+    encoded_dataset = dataset.map(
+        tokenize,
+        batched=True,
+        remove_columns=[column for column in dataset['train'].column_names if column != "label"], 
+        num_proc=NUM_PROC
+    )
     encoded_dataset.save_to_disk(filename)
     return encoded_dataset
 
-
 def main():
-    train_df = pd.read_json("data/train/train_issues.json")
-    test_df = pd.read_json("data/test/test_issues.json")
+    encoded_dataset = encode_dataset(force=not True)
+    encoded_dataset.set_format("torch")
 
-    issues_df = pd.concat([train_df, test_df], ignore_index=True, sort=False)
-    assignees = issues_df.assignee.unique()
+    labels = set(encoded_dataset["train"]["label"])
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=len(labels))
 
-    dataset = datasets.DatasetDict({"train": datasets.Dataset.from_pandas(train_df), "test": datasets.Dataset.from_pandas(test_df)})
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
 
-    labels = assignees
-    id2label = {idx:label for idx, label in enumerate(labels)}
-    label2id = {label:idx for idx, label in enumerate(labels)}
+    args = TrainingArguments(
+        save_strategy = "epoch",
+        output_dir=os.path.join("data", "checkpoints"),
+        overwrite_output_dir=False,
+        learning_rate=2e-5,
+        per_device_train_batch_size=2,
+        num_train_epochs=5,
+        fp16=True,
+    )
 
-    encoded_dataset = encode_dataset(dataset)
+    trainer = Trainer(
+        model,
+        args,
+        train_dataset=encoded_dataset["train"],
+        eval_dataset=encoded_dataset["test"],
+        tokenizer=tokenizer,
+        # compute_metrics=compute_metrics
+    )
+    trainer.train()
+    trainer.evaluate()
 
-    example = encoded_dataset['train'][0]
-    print(example.keys())
-
-    tokenizer.decode(example['input_ids'])
+    
 
 if __name__ == "__main__":
     main()
