@@ -144,7 +144,7 @@ def save_labeled_issues(updated_records, args, temp=True):
     return
 
 
-def create_labeled_issues(args, testing=60):
+def create_labeled_issues(args, testing=False):
     """
     Create new labeled file by fetching labels added within a specific time frame.
 
