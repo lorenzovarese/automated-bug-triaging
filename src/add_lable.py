@@ -31,7 +31,7 @@ def parse_arguments():
     parser.add_argument(
         "--seconds",
         type=int,
-        default=60,
+        default=180,
         help="Seconds within which the label must have been added."
     )
 
@@ -109,7 +109,42 @@ def check_rate_limit(g):
         check_rate_limit(g)
 
 
-def create_labeled_issues(args, testing=False):
+def get_labeled_issues():
+    """
+    Retrieve labeled issues from a JSON file or create a new labeled file if it does not exist.
+
+    This function checks if a labeled issues file exists. If it does, it reads and returns the data.
+    If not, it creates the labeled issues file and then reads and returns the data.
+
+    Returns:
+        DataFrame: A pandas DataFrame containing the labeled issues.
+    """
+    args = parse_arguments()
+    original_file_name = os.path.basename(args.path)
+    labeled_path = args.path.replace(original_file_name, args.output)
+
+    if os.path.exists(labeled_path):
+        df = pd.read_json(labeled_path)
+        return df
+    else:
+        print("labeled issues file not found, creating it...")
+        create_labeled_issues(args)
+        return get_labeled_issues()
+
+
+def save_labeled_issues(updated_records, args, temp=True):
+    updated_df = pd.DataFrame(updated_records)
+    original_file_name = os.path.basename(args.path)
+    if temp:
+        out_path = args.path.replace(original_file_name, "temp_" + args.output)
+        print("Saving temp_labeled issues...")
+    else:
+        out_path = args.path.replace(original_file_name, args.output)
+    updated_df.to_json(out_path, orient="records", indent=4)
+    return
+
+
+def create_labeled_issues(args, testing=60):
     """
     Create new labeled file by fetching labels added within a specific time frame.
 
@@ -119,6 +154,7 @@ def create_labeled_issues(args, testing=False):
 
     testing: False to run all the issues, otherwise the number of first issues to run
     """
+
     git = get_git(args.token)
     repo = git.get_repo(args.repository)
     df = pd.read_json(args.path, orient="records")
@@ -131,17 +167,14 @@ def create_labeled_issues(args, testing=False):
         if (n + 50) % 50 == 0: check_rate_limit(git)
         issue.creation_labels = get_creation_labels(issue.github_id, repo, args.seconds)
         print("N: " + str(n) + " G_ID: " + str(issue.github_id) + " labels: " + issue.creation_labels)
+        if (n + 5001) % 5000 == 0:  save_labeled_issues([record.toDict() for record in dot_records], args)
         if (testing != False) and (n >= testing): break
 
     updated_records = [record.toDict() for record in dot_records]
-    updated_df = pd.DataFrame(updated_records)
-    original_file_name = os.path.basename(args.path)
-    out_path = args.path.replace(original_file_name, "labeled_issues.json")
-    updated_df.to_json(out_path, orient="records", indent=4)
+    save_labeled_issues(updated_records, args, temp=False)
     return
 
 
 if __name__ == "__main__":
-    arguments = parse_arguments()
-    create_labeled_issues(arguments)
+    get_labeled_issues()
     print("Done!")
