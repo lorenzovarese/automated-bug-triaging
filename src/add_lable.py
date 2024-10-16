@@ -98,7 +98,7 @@ def get_creation_labels(issue_id, repo: Repository, seconds) -> str:
 def check_rate_limit(g):
     rate_limit = g.get_rate_limit()
     reset_time = g.get_rate_limit().core.reset.timestamp()
-    sleep_time = reset_time - time.time() + 60
+    sleep_time = reset_time - time.time() + 10
     print("remaining: " + str(rate_limit.core.remaining) + "    next reset: " + str(int(sleep_time)) + " seconds")
     if rate_limit.core.remaining < 250:
         print("Sleeping for " + str(int(sleep_time)) + " seconds")
