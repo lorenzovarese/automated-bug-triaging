@@ -22,13 +22,13 @@ def encode_dataset(force=False, filename=os.path.join("data", "encoded_dataset")
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
 
     train_df = issues_df[issues_df["github_id"] <= 210_000]
-    train_df, valid_df = train_test_split(train_df, test_size=0.1, random_state=42, stratify=train_df["label"])
+    train_df, eval_df = train_test_split(train_df, test_size=0.1, random_state=42, stratify=train_df["label"])
     test_df = issues_df[(210_000 < issues_df["github_id"]) & (issues_df["github_id"] <= 220_000)]
 
     dataset = datasets.DatasetDict({
         "train": datasets.Dataset.from_pandas(train_df),
         "test": datasets.Dataset.from_pandas(test_df),
-        "valid": datasets.Dataset.from_pandas(valid_df),
+        "eval": datasets.Dataset.from_pandas(eval_df),
     })
     dataset = dataset.filter(lambda x: len(tokenizer(x["cleaned_body"])["input_ids"]) <= CONTEXT_LENGTH, num_proc=NUM_PROC)
     
@@ -66,7 +66,7 @@ def main():
         model,
         args,
         train_dataset=encoded_dataset["train"],
-        eval_dataset=encoded_dataset["test"],
+        eval_dataset=encoded_dataset["eval"],
         tokenizer=tokenizer,
         # compute_metrics=compute_metrics
     )
