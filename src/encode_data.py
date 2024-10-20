@@ -26,7 +26,7 @@ def encode_data(
         return datasets.load_from_disk(encoded_data_path)
 
     if verbose: 
-        print("No cached data found.")
+        print(f"No cached data found at {encoded_data_path}.")
         print(f"Loading data from '{data_path}'...")
     issues_df = pd.read_json(data_path)
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
