@@ -16,12 +16,13 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 def get_issues_df():
     issues_df = pd.read_json(os.path.join("data", "issues.json"))
     issues_df['label'] = issues_df['assignee'].astype('category').cat.codes
+    issues_df["text"] = issues_df["title"] + " " + issues_df["cleaned_body"]
     if FRAC_OF_DATA < 1:
         issues_df = issues_df.sample(frac=FRAC_OF_DATA, random_state=1, weights="label").reset_index(drop=True)
     return issues_df
 
 def tokenize(examples):
-    encoding  = tokenizer(examples["cleaned_body"], padding="max_length", truncation=True, max_length=CONTEXT_LENGTH)
+    encoding  = tokenizer(examples["text"], padding="max_length", truncation=True, max_length=CONTEXT_LENGTH)
     encoding["label"] = examples["label"]
     return encoding
 
