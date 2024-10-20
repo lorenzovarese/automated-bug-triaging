@@ -227,7 +227,8 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     # Extract code snippets
     code_snippets, text = extract_code_snippets(text)
     # Extract tables
-    tables, text = extract_tables(text)
+    ## tables, text = extract_tables(text)
+    tables = []
     # Extract images
     images, text = extract_images(text)
     # Extract links
