@@ -95,9 +95,6 @@ def main():
     labels = set(map(lambda x: int(x), encoded_dataset["train"]["label"]))
     n_labels = max(labels) + 1 # can be different than len(labels) if sampled, because category 0 is removed for some reason (prolly too few issues assigned)
 
-    issues_df = get_issues_df()
-    label2assignee = issues_df[["label", "assignee"]].drop_duplicates().set_index("label")["assignee"].to_dict()
-
     ## Train the model
     if TRAIN_MODEL:
         model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=n_labels)
