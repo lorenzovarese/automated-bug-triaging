@@ -82,8 +82,13 @@ def get_creation_labels(issue_id, repo: Repository, seconds) -> str:
     Returns:
         str: A space-separated string of label names.
     """
+    created_labels = []
+    try:
+        issue = repo.get_issue(number=issue_id)
+    except Exception as e:
+        print(f"Si è verificato un errore: {e}")
+        return " ".join(created_labels)
 
-    issue = repo.get_issue(number=issue_id)
     events = issue.get_timeline()
     created_labels = []
     for event in events:
