@@ -54,8 +54,6 @@ def encode_data(
     encoded_dataset.save_to_disk(encoded_data_path)
     return encoded_dataset
 
-def main():
-    encode_data(force=True, verbose=True)
 
 if __name__ == "__main__":
-    main()
+    encode_data(force=True, verbose=True)
