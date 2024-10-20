@@ -30,7 +30,6 @@ def train_model(model, dataset, output_dir=os.path.join("data", "checkpoints")):
         train_dataset=dataset["train"],
         eval_dataset=dataset["eval"],
         tokenizer=TOKENIZER,
-        # compute_metrics=compute_metrics
     )
 
     print("----------- TRAINING -----------")
