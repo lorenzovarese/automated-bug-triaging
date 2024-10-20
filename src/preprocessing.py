@@ -369,6 +369,12 @@ def main() -> None:
     issues_df = remove_infrequent_assignees(issues_df, min_assignments=50)
 
     issues_df = preprocess_issues(issues_df)
+    assignees = set(issues_df["assignee"])
+    print(len(assignees))
+
+    issues_path = os.path.join("data", "issues.json")
+    os.makedirs(os.path.dirname(issues_path), exist_ok=True)
+    issues_df.to_json(issues_path, orient="records", indent=2)
 
     # Inline split data logic
     if 'github_id' not in issues_df.columns:
