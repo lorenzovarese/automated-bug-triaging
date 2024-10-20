@@ -343,6 +343,7 @@ def preprocess_issues(issues_df: pd.DataFrame, verbose: bool = False) -> pd.Data
     issues_df['links'] = markdown_results.apply(lambda x: x[2])
     issues_df['tables'] = markdown_results.apply(lambda x: x[3])
     issues_df['cleaned_body'] = markdown_results.apply(lambda x: x[4])
+    issues_df["text"] = issues_df.title + " " + issues_df.cleaned_body
 
     if verbose: print("\nPreprocessing cleaned issue bodies in parallel...")
     issues_df['classical_preprocessed_body'] = issues_df['cleaned_body'].parallel_apply(preprocess_text_classical)
