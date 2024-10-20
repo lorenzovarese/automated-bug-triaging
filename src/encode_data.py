@@ -18,9 +18,13 @@ def tokenize(examples):
 def encode_data(
         encoded_data_path=os.path.join("data", "encoded_data"), 
         data_path=os.path.join("data", "issues.json"), 
+        only_recent=False,
         force=False,
         verbose=False,
     ):
+    if only_recent:
+        encoded_data_path = encoded_data_path + "_recent"
+
     if not force and os.path.exists(encoded_data_path):
         if verbose: print(f"Loading encoded data from '{encoded_data_path}'...")
         return datasets.load_from_disk(encoded_data_path)
@@ -28,7 +32,19 @@ def encode_data(
     if verbose: 
         print(f"No cached data found at {encoded_data_path}.")
         print(f"Loading data from '{data_path}'...")
+
     issues_df = pd.read_json(data_path)
+
+    if only_recent:
+        if verbose: print("Filtering only recent data...")
+        issues_df = issues_df[190_000 <= issues_df["github_id"]]
+
+        # filter out issues with only one assignee because we can't split them
+        assignees_counts = issues_df["assignee"].value_counts()
+        if verbose: print(f"Filtering out {len(assignees_counts[assignees_counts == 1])} assignees with only one issue...")
+        assignees_with_multiple_issues = assignees_counts[assignees_counts > 1].index
+        issues_df = issues_df[issues_df["assignee"].isin(assignees_with_multiple_issues)]
+
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
 
     train_df = issues_df[issues_df["github_id"] <= 210_000]
@@ -56,4 +72,4 @@ def encode_data(
 
 
 if __name__ == "__main__":
-    encode_data(force=True, verbose=True)
+    encode_data(force=True, verbose=True, only_recent=True)
