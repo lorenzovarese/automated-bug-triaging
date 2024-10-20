@@ -22,8 +22,12 @@ def encode_data(
         verbose=False,
     ):
     if not force and os.path.exists(encoded_data_path):
+        if verbose: print(f"Loading encoded data from '{encoded_data_path}'...")
         return datasets.load_from_disk(encoded_data_path)
 
+    if verbose: 
+        print("No cached data found.")
+        print(f"Loading data from '{data_path}'...")
     issues_df = pd.read_json(data_path)
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
 
@@ -37,6 +41,7 @@ def encode_data(
         "test": datasets.Dataset.from_pandas(test_df),
     })
     
+    if verbose: print("Encoding data...")
     encoded_dataset = dataset.map(
         tokenize,
         batched=True,
@@ -44,6 +49,8 @@ def encode_data(
         # remove_columns=dataset['train'].column_names,
         num_proc=NUM_PROC
     )
+
+    if verbose: print(f"Saving encoded data to {encoded_data_path}...")
     encoded_dataset.save_to_disk(encoded_data_path)
     return encoded_dataset
 
