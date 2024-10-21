@@ -10,12 +10,18 @@ NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
 FRAC_OF_DATA = 1
 
 def train_model(model, dataset, output_dir=os.path.join("data", "checkpoints")):
+accuracy = evaluate.load('accuracy')
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    predictions = np.argmax(predictions, axis=1)
+    return accuracy.compute(predictions=predictions, references=labels)
     os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
     args = TrainingArguments(
-        save_strategy = "epoch",
+        save_strategy="epoch",
+        eval_strategy="epoch",
         output_dir=output_dir,
         overwrite_output_dir=False,
         learning_rate=2e-5,
@@ -30,6 +36,7 @@ def train_model(model, dataset, output_dir=os.path.join("data", "checkpoints")):
         train_dataset=dataset["train"],
         eval_dataset=dataset["eval"],
         tokenizer=TOKENIZER,
+        compute_metrics=compute_metrics,
     )
 
     print("----------- TRAINING -----------")
