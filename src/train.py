@@ -60,10 +60,10 @@ def main():
         trainer.train()
 
     eval_acc = trainer.evaluate()["eval_accuracy"]
-    print(f"Evaluation: {eval_acc*100:.2f}%")
+    print(f"Accuracy on evaluation set: {eval_acc*100:.2f}%")
 
     test_acc = trainer.evaluate(encoded_dataset["test"])["eval_accuracy"]
-    print(f"Test: {test_acc*100:.2f}%")
+    print(f"Accuracy on test set: {test_acc*100:.2f}%")
 
 if __name__ == "__main__":
     main()
