@@ -7,7 +7,6 @@ from encode_data import encode_data, TOKENIZER
 TRAIN_MODEL = True
 MODEL_NAME = "bert-base-uncased"
 NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
-FRAC_OF_DATA = 1
 
 def train_model(model, dataset, output_dir=os.path.join("data", "checkpoints")):
 accuracy = evaluate.load('accuracy')
