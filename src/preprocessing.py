@@ -227,7 +227,8 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     # Extract code snippets
     code_snippets, text = extract_code_snippets(text)
     # Extract tables
-    tables, text = extract_tables(text)
+    ## tables, text = extract_tables(text)
+    tables = []
     # Extract images
     images, text = extract_images(text)
     # Extract links
@@ -343,6 +344,7 @@ def preprocess_issues(issues_df: pd.DataFrame, verbose: bool = False) -> pd.Data
     issues_df['links'] = markdown_results.apply(lambda x: x[2])
     issues_df['tables'] = markdown_results.apply(lambda x: x[3])
     issues_df['cleaned_body'] = markdown_results.apply(lambda x: x[4])
+    issues_df["text"] = issues_df.title + " " + issues_df.cleaned_body
 
     if verbose: print("\nPreprocessing cleaned issue bodies in parallel...")
     issues_df['classical_preprocessed_body'] = issues_df['cleaned_body'].parallel_apply(preprocess_text_classical)
@@ -369,6 +371,10 @@ def main() -> None:
     issues_df = remove_infrequent_assignees(issues_df, min_assignments=50)
 
     issues_df = preprocess_issues(issues_df)
+
+    issues_path = os.path.join("data", "issues.json")
+    os.makedirs(os.path.dirname(issues_path), exist_ok=True)
+    issues_df.to_json(issues_path, orient="records", indent=2)
 
     # Inline split data logic
     if 'github_id' not in issues_df.columns:
