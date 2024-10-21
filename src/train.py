@@ -1,8 +1,9 @@
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
 import torch
-import pandas as pd
+import numpy as np
 import os, multiprocessing
 from encode_data import encode_data, TOKENIZER
+import evaluate
 
 TRAIN_MODEL = True
 MODEL_NAME = "bert-base-uncased"
@@ -42,7 +43,7 @@ def trainer_for_model(model, dataset, output_dir=os.path.join("data", "checkpoin
     return trainer
 
 def main():
-    encoded_dataset = encode_data()
+    encoded_dataset = encode_data(only_recent=True)
     encoded_dataset.set_format("torch")
 
     labels = set(map(lambda x: int(x), encoded_dataset["train"]["label"]))
