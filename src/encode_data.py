@@ -1,4 +1,5 @@
 from transformers import AutoTokenizer
+import logging
 from sklearn.model_selection import train_test_split
 import pandas as pd
 import datasets
@@ -55,6 +56,21 @@ def encode_data(
 
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
 
+    # filter issues that have more tokens that the model can handle
+    if verbose: print(f"Filtering out issues with more than {CONTEXT_LENGTH} tokens...")
+
+    # suppress annoying tokenization warnings
+    loggers = {}
+    for name in logging.root.manager.loggerDict:
+        if "tokenization" in name:
+            loggers[name] = logging.getLogger(name).getEffectiveLevel()
+            logging.getLogger(name).setLevel(logging.ERROR)
+
+    issues_df = issues_df[issues_df["text"].apply(lambda x: len(TOKENIZER(x)["input_ids"]) <= CONTEXT_LENGTH)]
+
+    # restore logging levels
+    for name, level in loggers.items():
+        logging.getLogger(name).setLevel(level)
     train_df, eval_df, test_df = train_eval_test_split(issues_df)
 
     dataset = datasets.DatasetDict({
