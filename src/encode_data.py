@@ -4,11 +4,11 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import datasets
 import os, multiprocessing
+import argparse
 
 MODEL_NAME = "bert-base-uncased"
 CONTEXT_LENGTH = 512
 NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
-FRAC_OF_DATA = 0.1
 
 TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME)
 
@@ -26,12 +26,16 @@ def train_eval_test_split(df, test_size=0.1):
 
 
 def encode_data(
-        encoded_data_path=os.path.join("data", f"encoded_data_{FRAC_OF_DATA*100:03.0f}"),
+        encoded_data_path=os.path.join("data", f"encoded_data"),
         data_path=os.path.join("data", "issues.json"), 
+        frac_of_data=1,
         only_recent=False,
+        num_proc=NUM_PROC,
         force=False,
         verbose=False,
     ):
+    encoded_data_path = encoded_data_path + f"_frac{frac_of_data*100:03.0f}"
+
     if only_recent:
         encoded_data_path = encoded_data_path + "_recent"
 
@@ -40,7 +44,8 @@ def encode_data(
         return datasets.load_from_disk(encoded_data_path)
 
     if verbose: 
-        print(f"No cached data found at {encoded_data_path}.")
+        if force: print("Forcig re-encoding of data.")
+        else: print(f"No cached data found at {encoded_data_path}.")
         print(f"Loading data from '{data_path}'...")
 
     issues_df = pd.read_json(data_path)
@@ -51,8 +56,8 @@ def encode_data(
 
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
 
-    if FRAC_OF_DATA < 1:
-        issues_df = issues_df.sample(frac=FRAC_OF_DATA, random_state=42, weights="label") # sample to reduce size (for testing purposes
+    if frac_of_data < 1:
+        issues_df = issues_df.sample(frac=frac_of_data, random_state=42, weights="label") # sample to reduce size (for testing purposes
 
     # filter issues that have more tokens that the model can handle
     if verbose: print(f"Filtering out issues with more than {CONTEXT_LENGTH} tokens...")
@@ -91,8 +96,7 @@ def encode_data(
         tokenize,
         batched=True,
         remove_columns=[column for column in dataset['train'].column_names if column not in ["label", "github_id"]], 
-        # remove_columns=dataset['train'].column_names,
-        num_proc=NUM_PROC
+        num_proc=num_proc,
     )
 
     if verbose: print(f"Saving encoded data to {encoded_data_path}...")
@@ -101,4 +105,22 @@ def encode_data(
 
 
 if __name__ == "__main__":
-    encode_data(force=True, verbose=True, only_recent=True)
+    parser = argparse.ArgumentParser(description="Encode the dataset for training a model.")
+    parser.add_argument("--force", action="store_true", help="Force re-encoding of data.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print verbose output.")
+    parser.add_argument("--only-recent", action="store_true", help="Only encode recent data.")
+    parser.add_argument("--frac-of-data", type=float, default=1, help="Fraction of data to encode. Default is 1. Use a smaller value (between 0 and 1) for testing.")
+    parser.add_argument("--data-path", type=str, default=os.path.join("data", "issues.json"), help="Path to the dataset. Default is 'data/issues.json'.")
+    parser.add_argument("--encoded-data-path", type=str, default=os.path.join("data", "encoded_data"), help="Path to save the encoded dataset. Default is 'data/encoded_data'. Note: The path is then extended with the fraction of the data, together with whether it is only recent issues or not.")
+    parser.add_argument("--num-proc", type=int, default=NUM_PROC, help=f"Number of processes to use for encoding. Default is {NUM_PROC}.")
+
+    
+    args = parser.parse_args()
+    encode_data(
+        encoded_data_path=args.encoded_data_path,
+        data_path=args.data_path,
+        frac_of_data=args.frac_of_data,
+        only_recent=args.only_recent,
+        force=args.force,
+        verbose=args.verbose,
+    )
