@@ -8,6 +8,7 @@ import os, multiprocessing
 MODEL_NAME = "bert-base-uncased"
 CONTEXT_LENGTH = 512
 NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
+FRAC_OF_DATA = 0.1
 
 TOKENIZER = AutoTokenizer.from_pretrained(MODEL_NAME)
 
@@ -25,7 +26,7 @@ def train_eval_test_split(df, test_size=0.1):
 
 
 def encode_data(
-        encoded_data_path=os.path.join("data", "encoded_data"), 
+        encoded_data_path=os.path.join("data", f"encoded_data_{FRAC_OF_DATA*100:03.0f}"),
         data_path=os.path.join("data", "issues.json"), 
         only_recent=False,
         force=False,
@@ -48,13 +49,10 @@ def encode_data(
         if verbose: print("Filtering only recent data...")
         issues_df = issues_df[190_000 <= issues_df["github_id"]]
 
-        # filter out issues with only one assignee because we can't split them
-        assignees_counts = issues_df["assignee"].value_counts()
-        if verbose: print(f"Filtering out {len(assignees_counts[assignees_counts == 1])} assignees with only one issue...")
-        assignees_with_multiple_issues = assignees_counts[assignees_counts > 1].index
-        issues_df = issues_df[issues_df["assignee"].isin(assignees_with_multiple_issues)]
-
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
+
+    if FRAC_OF_DATA < 1:
+        issues_df = issues_df.sample(frac=FRAC_OF_DATA, random_state=42, weights="label") # sample to reduce size (for testing purposes
 
     # filter issues that have more tokens that the model can handle
     if verbose: print(f"Filtering out issues with more than {CONTEXT_LENGTH} tokens...")
@@ -71,6 +69,15 @@ def encode_data(
     # restore logging levels
     for name, level in loggers.items():
         logging.getLogger(name).setLevel(level)
+
+
+    # filter out issues with only one assignee because we can't split them
+    assignees_counts = issues_df["assignee"].value_counts()
+
+    if verbose: print(f"Filtering out {len(assignees_counts[assignees_counts <= 3])} assignees with less than 3 issues...")
+    assignees_with_multiple_issues = assignees_counts[assignees_counts > 3].index
+    issues_df = issues_df[issues_df["assignee"].isin(assignees_with_multiple_issues)]
+
     train_df, eval_df, test_df = train_eval_test_split(issues_df)
 
     dataset = datasets.DatasetDict({
