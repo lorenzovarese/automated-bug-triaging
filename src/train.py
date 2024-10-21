@@ -51,22 +51,18 @@ def main():
     ## Train the model
     if TRAIN_MODEL:
         model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=n_labels)
-        trainer = train_model(model, encoded_dataset)
-        model = trainer.model
     else:
-        model = AutoModelForSequenceClassification.from_pretrained("./data/checkpoints/checkpoint-14265")
-        model.to("cuda" if torch.cuda.is_available() else "cpu")
+        model = AutoModelForSequenceClassification.from_pretrained("./data/checkpoints/checkpoint-2095")
 
-    accuracy = 0
-    for example in encoded_dataset["test"]:
-        encoding = {k: v.to("cuda" if torch.cuda.is_available() else "cpu").unsqueeze(0) for k,v in example.items() if k not in ["github_id", "label"]}
-        output = model(**encoding)
-        logits = output.logits
-        predicted_assignee = torch.argmax(logits, dim=1).item()
-        expected_assignee = example["label"].item()
-        accuracy += int(predicted_assignee == expected_assignee)
+    trainer = trainer_for_model(model, encoded_dataset)
+    if TRAIN_MODEL:
+        trainer.train()
 
-    print(f"Accuracy: {accuracy / len(encoded_dataset['test'])*100:.2f}%")
+    eval_acc = trainer.evaluate()["eval_accuracy"]
+    print(f"Evaluation: {eval_acc*100:.2f}%")
+
+    test_acc = trainer.evaluate(encoded_dataset["test"])["eval_accuracy"]
+    print(f"Test: {test_acc*100:.2f}%")
 
 if __name__ == "__main__":
     main()
