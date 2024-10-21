@@ -8,12 +8,13 @@ TRAIN_MODEL = True
 MODEL_NAME = "bert-base-uncased"
 NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
 
-def train_model(model, dataset, output_dir=os.path.join("data", "checkpoints")):
 accuracy = evaluate.load('accuracy')
 def compute_metrics(eval_pred):
     predictions, labels = eval_pred
     predictions = np.argmax(predictions, axis=1)
     return accuracy.compute(predictions=predictions, references=labels)
+
+def trainer_for_model(model, dataset, output_dir=os.path.join("data", "checkpoints")):
     os.environ["CUDA_VISIBLE_DEVICES"] = "2"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -38,15 +39,6 @@ def compute_metrics(eval_pred):
         compute_metrics=compute_metrics,
     )
 
-    print("----------- TRAINING -----------")
-    print(f"Started at {pd.Timestamp.now()}")
-    print(trainer.train())
-    print(f"Ended at {pd.Timestamp.now()}")
-
-    print("----------- Evaluation -----------")
-    print(f"Started at {pd.Timestamp.now()}")
-    print(trainer.evaluate())
-    print(f"Ended at {pd.Timestamp.now()}")
     return trainer
 
 def main():
