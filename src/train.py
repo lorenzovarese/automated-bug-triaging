@@ -1,13 +1,12 @@
 from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
 import torch
 import numpy as np
-import os, multiprocessing
+import os
 from encode_data import encode_data, TOKENIZER
 import evaluate
+import argparse
 
-TRAIN_MODEL = True
 MODEL_NAME = "bert-base-uncased"
-NUM_PROC = min(100, multiprocessing.cpu_count() - 1)
 
 accuracy = evaluate.load('accuracy')
 def compute_metrics(eval_pred):
@@ -42,28 +41,35 @@ def trainer_for_model(model, dataset, output_dir=os.path.join("data", "checkpoin
 
     return trainer
 
-def main():
-    encoded_dataset = encode_data(only_recent=True)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--train-model", action="store_true", help="Train the model.")
+    parser.add_argument("--frac-of-data", type=float, default=1, help="Fraction of data to use for training. Default is 1. Use a smaller value (between 0 and 1) for testing.")
+    parser.add_argument("-r", "--only-recent", action="store_true", help="Use only recent data for training.")
+    parser.add_argument("-c", "--checkpoint", type=str, default="", help="Path to a checkpoint to load. Ignored if --force-training is used.")
+    args = parser.parse_args()
+
+    encoded_dataset = encode_data(only_recent=args.only_recent, frac_of_data=args.frac_of_data)
     encoded_dataset.set_format("torch")
 
     labels = set(map(lambda x: int(x), encoded_dataset["train"]["label"]))
     n_labels = max(labels) + 1 # can be different than len(labels) if sampled, because category 0 is removed for some reason (prolly too few issues assigned)
 
     ## Train the model
-    if TRAIN_MODEL:
+    if args.train_model:
         model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=n_labels)
     else:
-        model = AutoModelForSequenceClassification.from_pretrained("./data/checkpoints/checkpoint-2095")
+        if args.checkpoint:
+            model = AutoModelForSequenceClassification.from_pretrained(args.checkpoint)
+        else:
+            raise ValueError("You need to provide a checkpoint path if you're not forcing training")
 
     trainer = trainer_for_model(model, encoded_dataset)
-    if TRAIN_MODEL:
+    if args.train_model:
         trainer.train()
 
     eval_acc = trainer.evaluate()["eval_accuracy"]
-    print(f"Accuracy on evaluation set: {eval_acc*100:.2f}%")
-
     test_acc = trainer.evaluate(encoded_dataset["test"])["eval_accuracy"]
-    print(f"Accuracy on test set: {test_acc*100:.2f}%")
 
-if __name__ == "__main__":
-    main()
+    print(f"Accuracy on evaluation set: {eval_acc*100:.2f}%")
+    print(f"Accuracy on test set: {test_acc*100:.2f}%")
