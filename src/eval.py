@@ -47,9 +47,14 @@ if __name__ == "__main__":
     parser.add_argument("--frac-of-data", type=float, default=1, help="Fraction of data to use for training. Default is 1. Use a smaller value (between 0 and 1) for testing.")
     parser.add_argument("-r", "--only-recent", action="store_true", help="Use only recent data for training.")
     parser.add_argument("-c", "--checkpoint", type=str, default="", help="Path to a checkpoint to load. Ignored if --force-training is used.")
+    parser.add_argument("--classical-preprocessing", action="store_true", help="Use classical preprocessing (stemming + stopwords removal) instead of the raw cleaned body of the issue.")
     args = parser.parse_args()
 
-    encoded_dataset = encode_data(only_recent=args.only_recent, frac_of_data=args.frac_of_data)
+    encoded_dataset = encode_data(
+        only_recent=args.only_recent, 
+        frac_of_data=args.frac_of_data,
+        classical_preprocessing=args.classical_preprocessing,
+    )
     encoded_dataset.set_format("torch")
 
     labels = set(map(lambda x: int(x), encoded_dataset["train"]["label"]))
