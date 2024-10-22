@@ -34,7 +34,7 @@ def encode_data(
         force=False,
         verbose=False,
     ):
-    encoded_data_path = encoded_data_path + f"_frac{frac_of_data*100:03.0f}"
+    encoded_data_path = encoded_data_path + f"_{frac_of_data*100:03.0f}"
 
     if only_recent:
         encoded_data_path = encoded_data_path + "_recent"
