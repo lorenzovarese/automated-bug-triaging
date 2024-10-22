@@ -24,17 +24,20 @@ def train_eval_test_split(df, test_size=0.1):
 
     return train_df, eval_df, test_df
 
-
 def encode_data(
         encoded_data_path=os.path.join("data", f"encoded_data"),
         data_path=os.path.join("data", "issues.json"), 
         frac_of_data=1,
         only_recent=False,
+        classical_preprocessing=False,
         num_proc=NUM_PROC,
         force=False,
         verbose=False,
     ):
     encoded_data_path = encoded_data_path + f"_{frac_of_data*100:03.0f}"
+
+    if classical_preprocessing:
+        encoded_data_path = encoded_data_path + "_classical"
 
     if only_recent:
         encoded_data_path = encoded_data_path + "_recent"
@@ -58,6 +61,10 @@ def encode_data(
 
     if frac_of_data < 1:
         issues_df = issues_df.sample(frac=frac_of_data, random_state=42, weights="label") # sample to reduce size (for testing purposes
+
+    if classical_preprocessing:
+        if verbose: print("Applying classical preprocessing...")
+        issues_df["text"] = issues_df["classical_preprocessed_title"] + " " + issues_df["classical_preprocessed_body"]
 
     # filter issues that have more tokens that the model can handle
     if verbose: print(f"Filtering out issues with more than {CONTEXT_LENGTH} tokens...")
@@ -109,6 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--force", action="store_true", help="Force re-encoding of data.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print verbose output.")
     parser.add_argument("-r", "--only-recent", action="store_true", help="Only encode recent data.")
+    parser.add_argument("-c", "--classical-preprocessing", action="store_true", help="Use classical preprocessing (stemming + stopwords removal) instead of the raw cleaned body of the issue.")
     parser.add_argument("--frac-of-data", type=float, default=1, help="Fraction of data to encode. Default is 1. Use a smaller value (between 0 and 1) for testing.")
     parser.add_argument("--data-path", type=str, default=os.path.join("data", "issues.json"), help="Path to the dataset. Default is 'data/issues.json'.")
     parser.add_argument("--encoded-data-path", type=str, default=os.path.join("data", "encoded_data"), help="Path to save the encoded dataset. Default is 'data/encoded_data'. Note: The path is then extended with the fraction of the data, together with whether it is only recent issues or not.")
@@ -121,6 +129,7 @@ if __name__ == "__main__":
         data_path=args.data_path,
         frac_of_data=args.frac_of_data,
         only_recent=args.only_recent,
+        classical_preprocessing=args.classical_preprocessing,
         force=args.force,
         verbose=args.verbose,
     )
