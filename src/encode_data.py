@@ -44,7 +44,7 @@ def encode_data(
         return datasets.load_from_disk(encoded_data_path)
 
     if verbose: 
-        if force: print("Forcig re-encoding of data.")
+        if force: print("Forcing re-encoding of data.")
         else: print(f"No cached data found at {encoded_data_path}.")
         print(f"Loading data from '{data_path}'...")
 
