@@ -105,7 +105,7 @@ def encode_data(
     encoded_dataset = dataset.map(
         tokenize,
         batched=True,
-        remove_columns=[column for column in dataset['train'].column_names if column not in ["label", "github_id"]], 
+        remove_columns=[column for column in dataset['train'].column_names if column not in ["label", "github_id", "assignee"]], 
         num_proc=num_proc,
     )
 
