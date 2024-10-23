@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 
 MAX_ISSUE_ID = 220_000
-ISSUES_FILE = "res/issues.json.zip"
+ISSUES_FILE = "data/issues.json.zip"
 
 
 def load_repo(repo_url):
