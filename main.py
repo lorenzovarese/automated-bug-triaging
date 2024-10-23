@@ -3,10 +3,6 @@ from src.pull_issues import load_repo
 from src.preprocessing import extract_markdown_elements
 from src.encode_data import TOKENIZER
 import argparse
-from github import Github
-
-from collections import defaultdict
-from tqdm import tqdm
 import json
 
 REPO = "microsoft/vscode"
