@@ -90,6 +90,9 @@ def encode_data(
     assignees_with_multiple_issues = assignees_counts[assignees_counts > 3].index
     issues_df = issues_df[issues_df["assignee"].isin(assignees_with_multiple_issues)]
 
+    # re-encode labels
+    issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
+
     train_df, eval_df, test_df = train_eval_test_split(issues_df)
 
     dataset = datasets.DatasetDict({
