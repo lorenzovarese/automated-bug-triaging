@@ -9,6 +9,17 @@ MAX_ISSUE_ID = 220_000
 ISSUES_FILE = "res/issues.json.zip"
 
 
+def load_repo(repo_url):
+    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
+    auth_token = os.environ["GITHUB_AUTH_TOKEN"]
+
+    assert len(auth_token) > 0, "Please provide a valid authentication token"
+    auth = Auth.Token(auth_token)
+    g = Github(auth=auth)
+
+    return g.get_repo(repo_url)
+
+
 def pull_issues(
         github_repo: str, 
         force_pull=False, 
@@ -33,14 +44,7 @@ def pull_issues(
 
     ret = []
 
-    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
-    auth_token = os.environ["GITHUB_AUTH_TOKEN"]
-
-    assert len(auth_token) > 0, "Please provide a valid authentication token"
-    auth = Auth.Token(auth_token)
-    g = Github(auth=auth)
-
-    repo = g.get_repo(github_repo)
+    repo = load_repo(github_repo)
     issues = repo.get_issues(state="closed", direction="asc")
 
     with tqdm(total=issues.totalCount, ncols= 200) as pbar:
