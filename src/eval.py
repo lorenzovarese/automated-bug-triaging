@@ -55,14 +55,16 @@ if __name__ == "__main__":
         frac_of_data=args.frac_of_data,
         classical_preprocessing=args.classical_preprocessing,
     )
-    encoded_dataset.set_format("torch")
+    id2label = dict(zip(encoded_dataset["train"]["label"], encoded_dataset["train"]["assignee"]))
+    label2id = {label: id for id, label in id2label.items()}
+    
 
     labels = set(map(lambda x: int(x), encoded_dataset["train"]["label"]))
     n_labels = max(labels) + 1 # can be different than len(labels) if sampled, because category 0 is removed for some reason (prolly too few issues assigned)
 
     ## Train the model
     if args.train_model:
-        model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=n_labels)
+        model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=n_labels, id2label=id2label, label2id=label2id)
     else:
         if args.checkpoint:
             model = AutoModelForSequenceClassification.from_pretrained(args.checkpoint)
