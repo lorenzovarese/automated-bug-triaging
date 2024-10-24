@@ -18,6 +18,8 @@ nltk.download('stopwords', quiet=True)
 stop_words = set(stopwords.words('english'))
 stemmer = PorterStemmer()
 
+pandarallel.initialize(nb_workers=min(100, multiprocessing.cpu_count()-1), progress_bar=True)
+
 def clean_html_and_symbols(text: str) -> str:
     """
     Remove HTML tags and special symbol encodings from the input text.
@@ -396,5 +398,4 @@ def main() -> None:
     test_set.to_json(test_path, orient='records', indent=2)
 
 if __name__ == '__main__':
-    pandarallel.initialize(nb_workers=min(100, multiprocessing.cpu_count()-1), progress_bar=True)
     main()
