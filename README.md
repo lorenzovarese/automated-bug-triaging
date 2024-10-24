@@ -225,5 +225,5 @@ Training completed. Model saved to data/checkpoints.
 Evaluating on evaluation dataset...
 Evaluation results: {'eval_loss': 0.5, 'eval_accuracy': 0.85}
 Evaluating on test dataset...
-Accuracy: 84.00%
+Accuracy: 54.00%
 ```
