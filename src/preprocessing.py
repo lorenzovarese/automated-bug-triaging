@@ -9,6 +9,7 @@ from typing import Tuple, List
 
 import multiprocessing
 
+PREPROCESSED_FILE = "res/issuesprep.json.zip"
 
 # Ensure NLTK resources are downloaded
 nltk.download('punkt', quiet=True)
@@ -151,55 +152,43 @@ def extract_tables(text: str) -> Tuple[List[List[List[str]]], str]:
     lines = text.split('\n')
     tables = []
     non_table_lines = []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
+    current_table = []
+    inside_table = False
 
-        # Check if this line contains a pipe '|' (table) and is not a code block line
-        if '|' not in line or line.strip().startswith('```'):
+    for line in lines:
+        # Skip code block markers
+        if line.strip().startswith('```'):
             non_table_lines.append(line)
-            i += 1
             continue
 
-        # Start processing potential table
-        table_lines = [line]
-        i += 1
-        if i >= len(lines):
-            non_table_lines.append(line)
-            continue  # End of text, handle as a non-table line
-
-        separator_line = lines[i]
-        # Guard clause for non-separator lines
-        if not re.match(r'^\s*\|?\s*(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
-            non_table_lines.append(line)
-            i -= 1  # Step back to reprocess the separator line
-            continue
-
-        # Valid separator found, add it and proceed to collect table body lines
-        table_lines.append(separator_line)
-        i += 1
-        while i < len(lines) and '|' in lines[i] and not lines[i].strip().startswith('```'):
-            table_lines.append(lines[i])
-            i += 1
-
-        # All lines of the table collected
-        tables.append(table_lines)
-
-    # Reconstruct text without tables
-    cleaned_text = '\n'.join(non_table_lines)
-    # Parse tables into structured data
-    parsed_tables = []
-    for table_lines in tables:
-        parsed_table = []
-        for row_line in table_lines:
-            # Skip separator lines
-            if re.match(r'^\s*\|?\s*(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', row_line):
+        # Detect potential table rows (contain pipes '|' and are not separator lines)
+        if '|' in line:
+            if re.match(r'^\s*\|?\s*(:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', line.strip()):
+                # Skip separator lines, do not include in cleaned text
+                inside_table = True
                 continue
-            # Split the row into cells
-            row = [cell.strip() for cell in row_line.strip().strip('|').split('|')]
-            parsed_table.append(row)
-        parsed_tables.append(parsed_table)
-    return parsed_tables, cleaned_text
+            else:
+                # If a valid table row (not a separator), collect it
+                current_table.append([cell.strip() for cell in line.strip().strip('|').split('|')])
+                inside_table = True
+        else:
+            # If not inside a table, just add to non-table lines
+            if inside_table:
+                # End of table detected, process the current table
+                if current_table:
+                    tables.append(current_table)
+                    current_table = []
+                inside_table = False
+            non_table_lines.append(line)
+
+    # Handle case where text ends with a table
+    if current_table:
+        tables.append(current_table)
+
+    # Reconstruct the cleaned text without the tables and separator lines
+    cleaned_text = '\n'.join(non_table_lines)
+
+    return tables, cleaned_text
 
 def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str]], List[Tuple[str, str]], List[List[List[str]]], str]:
     """
@@ -227,8 +216,8 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     # Extract code snippets
     code_snippets, text = extract_code_snippets(text)
     # Extract tables
-    ## tables, text = extract_tables(text)
-    tables = []
+    tables, text = extract_tables(text)
+    #tables = [] # TODO: the computation is too low. Fix the regular expression-based logic
     # Extract images
     images, text = extract_images(text)
     # Extract links
@@ -237,7 +226,7 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     cleaned_text = clean_html_and_symbols(text)
     return code_snippets, images, links, tables, cleaned_text
 
-def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 30) -> pd.DataFrame:
+def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 30, verbose: bool = False) -> pd.DataFrame:
     """
     Filter out issues assigned to developers with fewer than a specified number of assignments.
 
@@ -258,16 +247,19 @@ def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 
     issues_df_clean['assignee'] = issues_df_clean['assignee'].str.strip()
     assignee_counts = issues_df_clean['assignee'].value_counts()
 
-    print(f"\nAssignee counts before filtering:\n{assignee_counts}")
+    if verbose:
+        print(f"\nAssignee counts before filtering:\n{assignee_counts}")
 
     frequent_assignees = assignee_counts[assignee_counts >= min_assignments].index
     filtered_issues_df = issues_df_clean[issues_df_clean['assignee'].isin(frequent_assignees)]
 
-    print(f"\nTotal issues before filtering: {issues_df.shape[0]}")
-    print(f"Total issues after filtering: {filtered_issues_df.shape[0]}")
+    if verbose:
+        print(f"\nTotal issues before filtering: {issues_df.shape[0]}")
+        print(f"Total issues after filtering: {filtered_issues_df.shape[0]}")
 
     assignee_counts_after = filtered_issues_df['assignee'].value_counts()
-    print(f"\nAssignee counts after filtering:\n{assignee_counts_after}")
+    if verbose:
+        print(f"\nAssignee counts after filtering:\n{assignee_counts_after}")
 
     return filtered_issues_df
 
@@ -303,99 +295,55 @@ def preprocess_text_classical(text: str) -> str:
     preprocessed_text = ' '.join(tokens)
     return preprocessed_text
 
-def preprocess_issues(issues_df: pd.DataFrame, verbose: bool = False) -> pd.DataFrame:
+def get_preprocessed(github_repo: str, min_assignments: int = 50, force_processing: bool = False) -> pd.DataFrame:
     """
-    Preprocess issue titles and bodies by extracting markdown elements and applying text preprocessing.
+    Retrieve and preprocess issues from a specified GitHub repository.
+
+    This function pulls closed issues from the provided GitHub repository,
+    processes the titles and bodies of the issues to clean and extract relevant
+    markdown elements, and removes infrequent assignees.
 
     Args:
-        issues_df (pd.DataFrame): DataFrame containing raw issue data including titles and bodies.
-        verbose (bool): If set to True, prints additional information during processing.
+        github_repo (str): The GitHub repository in the format "owner/repo".
+        min_assignments (int, optional): The minimum number of assignments required 
+                                          for an assignee to be retained. Defaults to 50.
+        force_processing (bool, optional): If True, forces the function to pull new
+                                            data from GitHub even if cached data exists.
+                                            Defaults to False.
 
     Returns:
-        pd.DataFrame: The DataFrame with additional columns:
-            - 'classical_preprocessed_title': Preprocessed issue titles.
-            - 'code_snippets': Extracted code snippets from the issue bodies.
-            - 'images': Extracted images from the issue bodies.
-            - 'links': Extracted links from the issue bodies.
-            - 'tables': Extracted tables from the issue bodies.
-            - 'cleaned_body': Issue body with markdown elements removed.
-            - 'classical_preprocessed_body': Preprocessed version of the cleaned issue body.
-
-    Raises:
-        ValueError: If 'title' or 'body' columns are missing in the DataFrame.
+        pd.DataFrame: A DataFrame containing the processed issues
     """
-    required_columns = {'title', 'body'}
-    missing_columns = required_columns - set(issues_df.columns)
-    if missing_columns:
-        raise ValueError(f"The DataFrame is missing required columns: {missing_columns}")
-
-    if verbose: print("\nPreprocessing issue titles in parallel...")
+    from pull_issues import pull_issues
+    
+    if not force_processing and os.path.exists(PREPROCESSED_FILE):
+        df = pd.read_json(PREPROCESSED_FILE)
+        return df
+    
+    issues_df: pd.DataFrame = pull_issues(github_repo)
+    issues_df: pd.DataFrame = remove_infrequent_assignees(issues_df, min_assignments=min_assignments)
     issues_df['classical_preprocessed_title'] = issues_df['title'].parallel_apply(preprocess_text_classical)
 
-    # Apply markdown extraction with progress bar
-    if verbose: print("\nExtracting markdown elements (code snippets, images, links, tables) from issue bodies in parallel...")
-
-    # Apply the extraction function in parallel and split the results into individual columns
     markdown_results = issues_df['body'].parallel_apply(extract_markdown_elements)
-
-    # Split the tuple results into separate DataFrame columns
-    issues_df['code_snippets'] = markdown_results.apply(lambda x: x[0])
-    issues_df['images'] = markdown_results.apply(lambda x: x[1])
-    issues_df['links'] = markdown_results.apply(lambda x: x[2])
-    issues_df['tables'] = markdown_results.apply(lambda x: x[3])
-    issues_df['cleaned_body'] = markdown_results.apply(lambda x: x[4])
-    issues_df["text"] = issues_df.title + " " + issues_df.cleaned_body
-
-    if verbose: print("\nPreprocessing cleaned issue bodies in parallel...")
+    issues_df[['code_snippets', 'images', 'links', 'tables', 'cleaned_body']] = pd.DataFrame(markdown_results.tolist(), index=issues_df.index)
+    issues_df['text'] = issues_df['title'] + " " + issues_df['cleaned_body']
     issues_df['classical_preprocessed_body'] = issues_df['cleaned_body'].parallel_apply(preprocess_text_classical)
+    
+    issues_df.to_json(PREPROCESSED_FILE, orient="records")
 
     return issues_df
 
-def main() -> None:
-    """
-    Main function to execute the data preprocessing pipeline.
+if __name__ == "__main__":
+    # Example of usage
+    df = get_preprocessed("microsoft/vscode")
+    print(df.head())
+    print("Number of issues processed: ", df.shape[0])
 
-    Steps:
-        1. Pull issues from the specified GitHub repository.
-        2. Remove issues with infrequent assignees.
-        3. Preprocess issues by extracting markdown elements and cleaning text.
-        4. Split data into training and test sets.
-        5. Save the datasets to JSON files.
-    """
-    # Reduce the scope of pull_issues for testing purposes
-    from pull_issues import pull_issues
+    df_train = df[df["github_id"] <= 210_000]
+    df_recent = df[(190_000 <= df["github_id"]) & (df["github_id"] <= 210_000)]
+    df_test = df[(210_000 < df["github_id"]) & (df["github_id"] <= 220_000)]
+
+    print(f"Train size (id <= 210'000): {df_train.shape[0]}")
+    print(f"Recent size (190'000 <= id <= 210'000): {df_recent.shape[0]}")
+    print(f"Test size (210'000 < id <= 220'000): {df_test.shape[0]}")
     
-    issues_df = pull_issues("microsoft/vscode")
-    assert isinstance(issues_df, pd.DataFrame), f"Expected 'issues_df' to be a DataFrame but got {type(issues_df)}"
-
-    issues_df = remove_infrequent_assignees(issues_df, min_assignments=50)
-
-    issues_df = preprocess_issues(issues_df)
-
-    issues_path = os.path.join("data", "issues.json")
-    os.makedirs(os.path.dirname(issues_path), exist_ok=True)
-    issues_df.to_json(issues_path, orient="records", indent=2)
-
-    # Inline split data logic
-    if 'github_id' not in issues_df.columns:
-        raise ValueError("The DataFrame must contain a 'github_id' column.")
-
-    # Split data
-    train_range = (1, 210000)
-    test_range = (210001, 220000)
-    train_set = issues_df[(issues_df['github_id'] >= train_range[0]) & (issues_df['github_id'] <= train_range[1])]
-    test_set = issues_df[(issues_df['github_id'] >= test_range[0]) & (issues_df['github_id'] <= test_range[1])]
-
-    # Save data
-    train_path = os.path.join('data', 'train', 'train_issues.json')
-    test_path = os.path.join('data', 'test', 'test_issues.json')
-    print(f"\nSaving training dataset to {train_path} with {train_set.shape[0]} issues")
-    os.makedirs(os.path.dirname(train_path), exist_ok=True)
-    train_set.to_json(train_path, orient='records', indent=2)
-
-    print(f"Saving test dataset to {test_path} with {test_set.shape[0]} issues")
-    os.makedirs(os.path.dirname(test_path), exist_ok=True)
-    test_set.to_json(test_path, orient='records', indent=2)
-
-if __name__ == '__main__':
-    main()
