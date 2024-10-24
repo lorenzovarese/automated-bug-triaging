@@ -48,9 +48,11 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--only-recent", action="store_true", help="Use only recent data for training.")
     parser.add_argument("-c", "--checkpoint", type=str, default="", help="Path to a checkpoint to load. Ignored if --train-model is used.")
     parser.add_argument("--classical-preprocessing", action="store_true", help="Use classical preprocessing (stemming + stopwords removal) instead of the raw cleaned body of the issue.")
+    parser.add_argument("--encoded-data-path", type=str, default=os.path.join("data", "encoded_data"), help="Path to the encoded dataset. Default is 'data/encoded_data'. Note: The path is then extended with the fraction of the data, together with whether it is only recent issues or not.")
     args = parser.parse_args()
 
     encoded_dataset = encode_data(
+        encoded_data_path=args.encoded_data_path,
         only_recent=args.only_recent, 
         frac_of_data=args.frac_of_data,
         classical_preprocessing=args.classical_preprocessing,
