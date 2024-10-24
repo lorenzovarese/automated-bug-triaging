@@ -153,6 +153,7 @@ def extract_tables(text: str) -> Tuple[List[List[List[str]]], str]:
     tables = []
     non_table_lines = []
     current_table = []
+    inside_table = False
 
     for line in lines:
         # Skip code block markers
@@ -160,46 +161,34 @@ def extract_tables(text: str) -> Tuple[List[List[List[str]]], str]:
             non_table_lines.append(line)
             continue
 
-        # Detect table rows (contain pipes '|' and a valid separator line)
+        # Detect potential table rows (contain pipes '|' and are not separator lines)
         if '|' in line:
-            current_table.append(line)
+            if re.match(r'^\s*\|?\s*(:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', line.strip()):
+                # Skip separator lines, do not include in cleaned text
+                inside_table = True
+                continue
+            else:
+                # If a valid table row (not a separator), collect it
+                current_table.append([cell.strip() for cell in line.strip().strip('|').split('|')])
+                inside_table = True
         else:
-            # If we have a potential table and it has at least 2 lines (header and separator)
-            if current_table and len(current_table) > 1:
-                separator_line = current_table[1]
-                if re.match(r'^\s*\|?\s*(:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
+            # If not inside a table, just add to non-table lines
+            if inside_table:
+                # End of table detected, process the current table
+                if current_table:
                     tables.append(current_table)
-                else:
-                    # If not a valid table, treat as non-table lines
-                    non_table_lines.extend(current_table)
-            elif current_table:
-                # If there was only one line in current_table, it's not a valid table
-                non_table_lines.extend(current_table)
-
-            current_table = []
+                    current_table = []
+                inside_table = False
             non_table_lines.append(line)
 
     # Handle case where text ends with a table
-    if current_table and len(current_table) > 1:
-        separator_line = current_table[1]
-        if re.match(r'^\s*\|?\s*(:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
-            tables.append(current_table)
-        else:
-            non_table_lines.extend(current_table)
+    if current_table:
+        tables.append(current_table)
 
-    # Parse tables into structured data (list of rows and cells)
-    parsed_tables = []
-    for table in tables:
-        parsed_table = []
-        for row in table:
-            if '|' in row:
-                parsed_table.append([cell.strip() for cell in row.strip().strip('|').split('|')])
-        parsed_tables.append(parsed_table)
-
-    # Reconstruct the cleaned text without the tables
+    # Reconstruct the cleaned text without the tables and separator lines
     cleaned_text = '\n'.join(non_table_lines)
 
-    return parsed_tables, cleaned_text
+    return tables, cleaned_text
 
 def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str]], List[Tuple[str, str]], List[List[List[str]]], str]:
     """
