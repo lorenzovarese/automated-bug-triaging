@@ -123,7 +123,6 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--only-recent", action="store_true", help="Only encode recent data.")
     parser.add_argument("-c", "--classical-preprocessing", action="store_true", help="Use classical preprocessing (stemming + stopwords removal) instead of the raw cleaned body of the issue.")
     parser.add_argument("--frac-of-data", type=float, default=1, help="Fraction of data to encode. Default is 1. Use a smaller value (between 0 and 1) for testing.")
-    parser.add_argument("--data-path", type=str, default=os.path.join("data", "issues.json"), help="Path to the dataset. Default is 'data/issues.json'.")
     parser.add_argument("--encoded-data-path", type=str, default=os.path.join("data", "encoded_data"), help="Path to save the encoded dataset. Default is 'data/encoded_data'. Note: The path is then extended with the fraction of the data, together with whether it is only recent issues or not.")
     parser.add_argument("--num-proc", type=int, default=NUM_PROC, help=f"Number of processes to use for encoding. Default is {NUM_PROC}.")
 
@@ -131,7 +130,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     encode_data(
         encoded_data_path=args.encoded_data_path,
-        data_path=args.data_path,
         frac_of_data=args.frac_of_data,
         only_recent=args.only_recent,
         classical_preprocessing=args.classical_preprocessing,
