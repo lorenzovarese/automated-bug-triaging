@@ -5,6 +5,7 @@ import pandas as pd
 import datasets
 import os, multiprocessing
 import argparse
+from preprocessing import get_preprocessed
 
 MODEL_NAME = "bert-base-uncased"
 CONTEXT_LENGTH = 512
@@ -51,7 +52,8 @@ def encode_data(
         else: print(f"No cached data found at {encoded_data_path}.")
         print(f"Loading data from '{data_path}'...")
 
-    issues_df = pd.read_json(data_path)
+    if verbose: print("Getting preprocessing data...")
+    issues_df = get_preprocessed("microsoft/vscode")
 
     if only_recent:
         if verbose: print("Filtering only recent data...")
