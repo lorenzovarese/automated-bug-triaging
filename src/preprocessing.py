@@ -229,7 +229,7 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     code_snippets, text = extract_code_snippets(text)
     # Extract tables
     ## tables, text = extract_tables(text)
-    tables = []
+    tables = [] # TODO: the computation is too low. Fix the regular expression-based logic
     # Extract images
     images, text = extract_images(text)
     # Extract links
@@ -238,7 +238,7 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     cleaned_text = clean_html_and_symbols(text)
     return code_snippets, images, links, tables, cleaned_text
 
-def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 30) -> pd.DataFrame:
+def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 30, verbose: bool = False) -> pd.DataFrame:
     """
     Filter out issues assigned to developers with fewer than a specified number of assignments.
 
@@ -259,16 +259,19 @@ def remove_infrequent_assignees(issues_df: pd.DataFrame, min_assignments: int = 
     issues_df_clean['assignee'] = issues_df_clean['assignee'].str.strip()
     assignee_counts = issues_df_clean['assignee'].value_counts()
 
-    print(f"\nAssignee counts before filtering:\n{assignee_counts}")
+    if verbose:
+        print(f"\nAssignee counts before filtering:\n{assignee_counts}")
 
     frequent_assignees = assignee_counts[assignee_counts >= min_assignments].index
     filtered_issues_df = issues_df_clean[issues_df_clean['assignee'].isin(frequent_assignees)]
 
-    print(f"\nTotal issues before filtering: {issues_df.shape[0]}")
-    print(f"Total issues after filtering: {filtered_issues_df.shape[0]}")
+    if verbose:
+        print(f"\nTotal issues before filtering: {issues_df.shape[0]}")
+        print(f"Total issues after filtering: {filtered_issues_df.shape[0]}")
 
     assignee_counts_after = filtered_issues_df['assignee'].value_counts()
-    print(f"\nAssignee counts after filtering:\n{assignee_counts_after}")
+    if verbose:
+        print(f"\nAssignee counts after filtering:\n{assignee_counts_after}")
 
     return filtered_issues_df
 
