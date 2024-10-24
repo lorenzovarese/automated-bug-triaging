@@ -152,54 +152,53 @@ def extract_tables(text: str) -> Tuple[List[List[List[str]]], str]:
     lines = text.split('\n')
     tables = []
     non_table_lines = []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
+    current_table = []
 
-        # Check if this line contains a pipe '|' (table) and is not a code block line
-        if '|' not in line or line.strip().startswith('```'):
+    for line in lines:
+        # Skip code block markers
+        if line.strip().startswith('```'):
             non_table_lines.append(line)
-            i += 1
             continue
 
-        # Start processing potential table
-        table_lines = [line]
-        i += 1
-        if i >= len(lines):
+        # Detect table rows (contain pipes '|' and a valid separator line)
+        if '|' in line:
+            current_table.append(line)
+        else:
+            # If we have a potential table and it has at least 2 lines (header and separator)
+            if current_table and len(current_table) > 1:
+                separator_line = current_table[1]
+                if re.match(r'^\s*\|?\s*(:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
+                    tables.append(current_table)
+                else:
+                    # If not a valid table, treat as non-table lines
+                    non_table_lines.extend(current_table)
+            elif current_table:
+                # If there was only one line in current_table, it's not a valid table
+                non_table_lines.extend(current_table)
+
+            current_table = []
             non_table_lines.append(line)
-            continue  # End of text, handle as a non-table line
 
-        separator_line = lines[i]
-        # Guard clause for non-separator lines
-        if not re.match(r'^\s*\|?\s*(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
-            non_table_lines.append(line)
-            i -= 1  # Step back to reprocess the separator line
-            continue
+    # Handle case where text ends with a table
+    if current_table and len(current_table) > 1:
+        separator_line = current_table[1]
+        if re.match(r'^\s*\|?\s*(:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', separator_line):
+            tables.append(current_table)
+        else:
+            non_table_lines.extend(current_table)
 
-        # Valid separator found, add it and proceed to collect table body lines
-        table_lines.append(separator_line)
-        i += 1
-        while i < len(lines) and '|' in lines[i] and not lines[i].strip().startswith('```'):
-            table_lines.append(lines[i])
-            i += 1
-
-        # All lines of the table collected
-        tables.append(table_lines)
-
-    # Reconstruct text without tables
-    cleaned_text = '\n'.join(non_table_lines)
-    # Parse tables into structured data
+    # Parse tables into structured data (list of rows and cells)
     parsed_tables = []
-    for table_lines in tables:
+    for table in tables:
         parsed_table = []
-        for row_line in table_lines:
-            # Skip separator lines
-            if re.match(r'^\s*\|?\s*(\s*:?-+:?\s*\|)+\s*(:?-+:?\s*)?\s*$', row_line):
-                continue
-            # Split the row into cells
-            row = [cell.strip() for cell in row_line.strip().strip('|').split('|')]
-            parsed_table.append(row)
+        for row in table:
+            if '|' in row:
+                parsed_table.append([cell.strip() for cell in row.strip().strip('|').split('|')])
         parsed_tables.append(parsed_table)
+
+    # Reconstruct the cleaned text without the tables
+    cleaned_text = '\n'.join(non_table_lines)
+
     return parsed_tables, cleaned_text
 
 def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str]], List[Tuple[str, str]], List[List[List[str]]], str]:
@@ -228,8 +227,8 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     # Extract code snippets
     code_snippets, text = extract_code_snippets(text)
     # Extract tables
-    ## tables, text = extract_tables(text)
-    tables = [] # TODO: the computation is too low. Fix the regular expression-based logic
+    tables, text = extract_tables(text)
+    #tables = [] # TODO: the computation is too low. Fix the regular expression-based logic
     # Extract images
     images, text = extract_images(text)
     # Extract links
