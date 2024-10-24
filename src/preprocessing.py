@@ -9,7 +9,7 @@ from typing import Tuple, List
 
 import multiprocessing
 
-PREPROCESSED_FILE = "res/issuesprep.json.zip"
+PREPROCESSED_FILE = "data/issuesprep.json.zip"
 
 # Ensure NLTK resources are downloaded
 nltk.download('punkt', quiet=True)
