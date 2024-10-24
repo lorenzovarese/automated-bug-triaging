@@ -57,9 +57,11 @@ def encode_data(
         if verbose: print("Filtering only recent data...")
         issues_df = issues_df[190_000 <= issues_df["github_id"]]
 
+    if verbose: print("Encoding assignees...")
     issues_df["label"] = issues_df["assignee"].astype("category").cat.codes
 
     if frac_of_data < 1:
+        if verbose: print(f"Sampling {frac_of_data*100}% of the data...")
         issues_df = issues_df.sample(frac=frac_of_data, random_state=42, weights="label") # sample to reduce size (for testing purposes
 
     if classical_preprocessing:
