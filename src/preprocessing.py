@@ -9,7 +9,7 @@ from typing import Tuple, List
 
 import multiprocessing
 
-PREPROCESSED_FILE = "res/issuesprep.json.zip"
+PREPROCESSED_FILE = "data/issuesprep.json.zip"
 
 # Ensure NLTK resources are downloaded
 nltk.download('punkt', quiet=True)
@@ -217,7 +217,6 @@ def extract_markdown_elements(text: str) -> Tuple[List[str], List[Tuple[str, str
     code_snippets, text = extract_code_snippets(text)
     # Extract tables
     tables, text = extract_tables(text)
-    #tables = [] # TODO: the computation is too low. Fix the regular expression-based logic
     # Extract images
     images, text = extract_images(text)
     # Extract links

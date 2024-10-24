@@ -3,11 +3,43 @@ from github import Github
 from github import Auth
 import pandas as pd
 from tqdm import tqdm
+from collections import defaultdict
+import json
 
 
 MAX_ISSUE_ID = 220_000
-ISSUES_FILE = "res/issues.json.zip"
+ISSUES_FILE = "data/issues.json.zip"
 
+
+def load_repo(repo_url):
+    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
+    auth_token = os.environ["GITHUB_AUTH_TOKEN"]
+
+    assert len(auth_token) > 0, "Please provide a valid authentication token"
+    auth = Auth.Token(auth_token)
+    g = Github(auth=auth)
+
+    return g.get_repo(repo_url)
+
+def pull_author2commits(repo_url, filepath="data/author2commits.json"):
+    repo = load_repo(repo_url)
+    author2commits = defaultdict(int)
+    commits = repo.get_commits()
+    print(commits.totalCount)
+    for commit in tqdm(commits, total=commits.totalCount, unit="commit"):
+        try:
+            if not hasattr(commit, "author") or not hasattr(commit.author, "login"):
+                continue
+            author = commit.author.login
+            if author:
+                author2commits[author] += 1
+        except Exception as e:
+            print(f"Issue with commit, skipping...")
+            print(e)
+            continue
+
+    with open(filepath, "w") as f:
+        json.dump(author2commits, f)
 
 def pull_issues(
         github_repo: str, 
@@ -33,14 +65,7 @@ def pull_issues(
 
     ret = []
 
-    assert "GITHUB_AUTH_TOKEN" in os.environ, "Please set the GITHUB_AUTH_TOKEN environment variable"
-    auth_token = os.environ["GITHUB_AUTH_TOKEN"]
-
-    assert len(auth_token) > 0, "Please provide a valid authentication token"
-    auth = Auth.Token(auth_token)
-    g = Github(auth=auth)
-
-    repo = g.get_repo(github_repo)
+    repo = load_repo(github_repo)
     issues = repo.get_issues(state="closed", direction="asc")
 
     with tqdm(total=issues.totalCount, ncols= 200) as pbar:
