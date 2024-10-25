@@ -66,6 +66,25 @@ The tool consists of several scripts that you can run with various command-line 
 
 Run the `pull_issues.py` script to pull issues from the target GitHub repository. By default, it pulls issues from the `microsoft/vscode` repository.
 
+```
+$ python3 src/pull_issues.py -h
+usage: pull_issues.py [-h] [-f] [-r REPO] [--author2commits]
+                      [--author2commits-path AUTHOR2COMMITS_PATH] [-v]
+
+options:
+  -h, --help            show this help message and exit
+  -f, --force           Force re-pulling of data
+  -r REPO, --repo REPO  The repository to pull issues from. Default is
+                        'microsoft/vscode'
+  --author2commits      Pull also the number of commits for each author in the
+                        repository and save it to --author2commits-path
+  --author2commits-path AUTHOR2COMMITS_PATH
+                        Path to save the author2commits dictionary. Default is
+                        'data/author2commits.json'
+  -v, --verbose         Print verbose output
+```
+
+An example usage could be
 ```bash
 python3 src/pull_issues.py
 ```
