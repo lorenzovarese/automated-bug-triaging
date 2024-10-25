@@ -108,7 +108,7 @@ python3 src/preprocessing.py
 
 This script will:
 
-- Load the issues data from `data/issues.json.zip`.
+- Load the issues data from `data/issues.json.zip` (or pulls the issues and saves if there if the file doesn't exist).
 - Remove issues assigned to developers with fewer than a specified number of assignments (default is 50).
 - Preprocess the issue titles and bodies:
     - Extract code snippets, images, links, and tables from markdown content.
