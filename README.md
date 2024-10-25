@@ -66,25 +66,6 @@ The tool consists of several scripts that you can run with various command-line 
 
 Run the `pull_issues.py` script to pull issues from the target GitHub repository. By default, it pulls issues from the `microsoft/vscode` repository.
 
-```
-$ python3 src/pull_issues.py -h
-usage: pull_issues.py [-h] [-f] [-r REPO] [--author2commits]
-                      [--author2commits-path AUTHOR2COMMITS_PATH] [-v]
-
-options:
-  -h, --help            show this help message and exit
-  -f, --force           Force re-pulling of data
-  -r REPO, --repo REPO  The repository to pull issues from. Default is
-                        'microsoft/vscode'
-  --author2commits      Pull also the number of commits for each author in the
-                        repository and save it to --author2commits-path
-  --author2commits-path AUTHOR2COMMITS_PATH
-                        Path to save the author2commits dictionary. Default is
-                        'data/author2commits.json'
-  -v, --verbose         Print verbose output
-```
-
-An example usage could be
 ```bash
 python3 src/pull_issues.py
 ```
@@ -96,7 +77,14 @@ This script will:
 - Filter issues to include only those with exactly one assignee.
 - Save the issues data to `data/issues.json.zip`.
 
-If you wish to pull issues from a different repository, you can pass a different url with the `-r` flag.
+| Argument                    | Description                                                               |
+|-----------------------------|---------------------------------------------------------------------------|
+| `-f`, `--force`             | Force re-pulling of data                                                  |
+| `-r REPO`, `--repo REPO`    | The repository to pull issues from (default is 'microsoft/vscode')        |
+| `--author2commits`          | Pull also the number of commits for each author in the repository and save it to --author2commits-path |
+| `--author2commits-path AUTHOR2COMMITS_PATH` | Path to save the author2commits dictionary (default is 'data/author2commits.json') |
+| `-v`, `--verbose` | Print verbose output |
+           
 
 ### Step 2: Preprocess the Issues Data
 
@@ -126,43 +114,36 @@ python3 src/encode_data.py --force --verbose --frac-of-data 0.8
 
 | Argument                  | Description                                                                 |
 |----------------------------|-----------------------------------------------------------------------------|
-| `--force`                  | Force re-encoding of data.                                                  |
-| `--verbose`                | Print verbose output.                                                       |
-| `--only-recent`            | Only encode recent data.                                                    |
+| `-f`, `--force`                  | Force re-encoding of data.                                                  |
+| `-v`, `--verbose`                | Print verbose output.                                                       |
+| `-r`, `--only-recent`            | Only encode recent data.                                                    |
 | `--classical-preprocessing`| Use classical preprocessing (stemming + stopwords removal) instead of raw data. |
-| `--frac-of-data`           | Specify the fraction of data to encode (default is 1).                       |
-| `--encoded-data-path`      | Path to save the encoded dataset (default is `data/encoded_data`).           |
-| `--num-proc`               | Number of processes to use for encoding (default is the number of available CPUs).|
+| `--frac-of-data FRAC_OF_DATA`           | Specify the fraction of data to encode (default is 1).                       |
+| `--encoded-data-path ENCODED_DATA_PATH`      | Path to save the encoded dataset (default is `data/encoded_data`).           |
+| `--num-proc NUM_PROC`               | Number of processes to use for encoding (default is the number of available CPUs).|
 
-### Step 4: Train the Model
+### Step 4: Evaluate the Model
 
-Run the `train.py` script to train the model on the encoded data. You can control the behavior of the training process with arguments such as `--train-model` to start training or `--checkpoint` to load an existing model:
+Run the `eval.py` script with `-t` to train the model on the encoded data. It will train a model and show the performance on the test set.
 
 ```bash
-python3 src/train.py --train-model --frac-of-data 0.8
+python3 src/eval.py -t --frac-of-data 0.8
+```
+
+If you wish to only evaluate a model, do not use the `-t` option, and just load the checkpoint you want with the `-c` argument.
+
+```bash
+python3 src/eval.py -c data/checkpoints/best-model
 ```
 
 | Argument                   | Description                                                               |
 |-----------------------------|---------------------------------------------------------------------------|
-| `--train-model`             | Force the training of the model.                                           |
-| `--frac-of-data`            | Fraction of data to use for training (default is 1).                        |
-| `--only-recent`             | Use only recent data for training.                                         |
-| `--checkpoint`              | Path to a checkpoint to load a pretrained model.                           |
+| `-t`, `--train-model`             | Force the training of the model.                                           |
+| `--frac-of-data FRAC_OF_DATA`            | Fraction of data to use for training (default is 1).                        |
+| `-r`, `--only-recent`             | Use only recent data for training.                                         |
+| `-c`, `--checkpoint CHECKPOINT`              | Path to a checkpoint to load a pretrained model. Ignored if `--train-model` is used.                           |
 | `--classical-preprocessing` | Use classical preprocessing (stemming + stopwords removal).                |
 | `--encoded-data-path`       | Path to the encoded dataset (default is `data/encoded_data`).              |
-
-### Step 5: Evaluate the Model
-
-Run the `eval.py` script to evaluate the model. The script will output evaluation results such as accuracy and loss:
-
-```bash
-python3 src/eval.py --frac-of-data 0.8 --checkpoint data/checkpoints/model_checkpoint
-```
-
-| Argument                   | Description                                                               |
-|-----------------------------|---------------------------------------------------------------------------|
-| `--frac-of-data`            | Fraction of data to use for evaluation (default is 1).                      |
-| `--checkpoint`              | Path to a checkpoint to load the model for evaluation.                     |
 
 ### Additional Step: Run Baseline Classifier for Comparison
 
