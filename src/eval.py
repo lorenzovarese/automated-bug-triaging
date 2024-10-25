@@ -1,4 +1,4 @@
-from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer
+from transformers import AutoModelForSequenceClassification, TrainingArguments, Trainer, EarlyStoppingCallback
 import torch
 import numpy as np
 import os
@@ -28,7 +28,10 @@ def trainer_for_model(model, dataset, output_dir=os.path.join("data", "checkpoin
         per_device_train_batch_size=2,
         num_train_epochs=5,
         fp16=True,
+        load_best_model_at_end=True,
     )
+
+    early_stop = EarlyStoppingCallback(3, 1.0)
 
     trainer = Trainer(
         model,
@@ -37,6 +40,7 @@ def trainer_for_model(model, dataset, output_dir=os.path.join("data", "checkpoin
         eval_dataset=dataset["eval"],
         tokenizer=TOKENIZER,
         compute_metrics=compute_metrics,
+        callbacks=[early_stop],
     )
 
     return trainer
@@ -76,6 +80,7 @@ if __name__ == "__main__":
     trainer = trainer_for_model(model, encoded_dataset)
     if args.train_model:
         trainer.train()
+        trainer.model.save_pretrained(os.path.join("data", "checkpoints", "best-model"))
 
     eval_acc = trainer.evaluate()["eval_accuracy"]
     test_acc = trainer.evaluate(encoded_dataset["test"])["eval_accuracy"]

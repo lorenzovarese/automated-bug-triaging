@@ -5,7 +5,6 @@ import pandas as pd
 import datasets
 import os, multiprocessing
 import argparse
-from preprocessing import get_preprocessed
 
 MODEL_NAME = "bert-base-uncased"
 CONTEXT_LENGTH = 512
@@ -35,6 +34,7 @@ def encode_data(
         force=False,
         verbose=False,
     ):
+    from preprocessing import get_preprocessed
     encoded_data_path = encoded_data_path + f"_{frac_of_data*100:03.0f}"
 
     if classical_preprocessing:

@@ -5,6 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict
 import json
+import argparse
 
 
 MAX_ISSUE_ID = 220_000
@@ -21,11 +22,11 @@ def load_repo(repo_url):
 
     return g.get_repo(repo_url)
 
-def pull_author2commits(repo_url, filepath="data/author2commits.json"):
+def pull_author2commits(repo_url, filepath="data/author2commits.json", verbose=False):
     repo = load_repo(repo_url)
     author2commits = defaultdict(int)
     commits = repo.get_commits()
-    print(commits.totalCount)
+    if verbose: print("Total number of commits:", commits.totalCount)
     for commit in tqdm(commits, total=commits.totalCount, unit="commit"):
         try:
             if not hasattr(commit, "author") or not hasattr(commit.author, "login"):
@@ -34,8 +35,9 @@ def pull_author2commits(repo_url, filepath="data/author2commits.json"):
             if author:
                 author2commits[author] += 1
         except Exception as e:
-            print(f"Issue with commit, skipping...")
-            print(e)
+            if verbose:
+                print(f"Issue with commit, skipping...")
+                print(e)
             continue
 
     with open(filepath, "w") as f:
@@ -44,6 +46,7 @@ def pull_author2commits(repo_url, filepath="data/author2commits.json"):
 def pull_issues(
         github_repo: str, 
         force_pull=False, 
+        verbose=False,
     ) -> pd.DataFrame:
     """
     Get the issues from the given url.
@@ -60,6 +63,7 @@ def pull_issues(
     """
 
     if not force_pull and os.path.exists(ISSUES_FILE):
+        if verbose: print(f"Loading issues from {ISSUES_FILE}")
         df = pd.read_json(ISSUES_FILE)
         return df
 
@@ -68,6 +72,7 @@ def pull_issues(
     repo = load_repo(github_repo)
     issues = repo.get_issues(state="closed", direction="asc")
 
+    if verbose: print(f"Pulling issues from {github_repo}")
     with tqdm(total=issues.totalCount, ncols= 200) as pbar:
         for issue in issues:
             pbar.update(1)
@@ -86,13 +91,27 @@ def pull_issues(
             ret.append(issue_info)
 
     df = pd.DataFrame(ret)
+    if verbose: print(f"Saving issues to {ISSUES_FILE}")
     df.to_json(ISSUES_FILE, orient="records")
 
     return df
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--force", action="store_true", help="Force re-pulling of data")
+    parser.add_argument("-r", "--repo", type=str, default="microsoft/vscode", help="The repository to pull issues from. Default is 'microsoft/vscode'")
+    parser.add_argument("--author2commits", action="store_true", help="Pull also the number of commits for each author in the repository and save it to --author2commits-path")
+    parser.add_argument("--author2commits-path", type=str, default="data/author2commits.json", help="Path to save the author2commits dictionary. Default is 'data/author2commits.json'")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print verbose output")
+
+    args = parser.parse_args()
+
+
     # Example of usage
-    df = pull_issues("microsoft/vscode")
+    df = pull_issues(args.repo, force_pull=args.force, verbose=args.verbose)
+    if args.author2commits:
+        pull_author2commits(args.repo, filepath=args.author2commits_path)
+
     print(df.head())
     print("Number of issues pulled: ", df.shape[0])
 
