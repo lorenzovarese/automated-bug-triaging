@@ -154,6 +154,11 @@ ranked list of users that are the most likely assignees accroding to our model.
 python3 main.py -c data/checkpoints/best-model -i 232113
 ```
 
+| Argument                   | Description                                                               |
+|-----------------------------|---------------------------------------------------------------------------|
+| `-m`, `--model MODEL`            | **Required**. Model to use for the prediction. Usually `./data/checkpoints/checkpoint-XXXX` or `./data/checkpoints/best-model`                        |
+| `-i`, `--issue ISSUE` | **Required**. Issue number for which to predict assignees  |
+
 ### Additional Step: Run Baseline Classifier for Comparison
 
 You can run the baseline classifier for comparison against the machine learning model:
