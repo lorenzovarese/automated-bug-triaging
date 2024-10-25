@@ -96,8 +96,7 @@ This script will:
 - Filter issues to include only those with exactly one assignee.
 - Save the issues data to `data/issues.json.zip`.
 
-If you wish to pull issues from a different repository, you can modify the `github_repo` parameter in the
-`pull_issues.py` script.
+If you wish to pull issues from a different repository, you can pass a different url with the `-r` flag.
 
 ### Step 2: Preprocess the Issues Data
 
