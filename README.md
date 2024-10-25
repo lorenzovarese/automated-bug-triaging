@@ -145,6 +145,15 @@ python3 src/eval.py -c data/checkpoints/best-model
 | `--classical-preprocessing` | Use classical preprocessing (stemming + stopwords removal).                |
 | `--encoded-data-path`       | Path to the encoded dataset (default is `data/encoded_data`).              |
 
+### Step 5: Use the model
+
+Now that we did everything, we can use the tool for it's intended purpose: get a
+ranked list of users that are the most likely assignees accroding to our model.
+
+```bash
+python3 main.py -c data/checkpoints/best-model -i 232113
+```
+
 ### Additional Step: Run Baseline Classifier for Comparison
 
 You can run the baseline classifier for comparison against the machine learning model:
@@ -250,4 +259,20 @@ Evaluating on evaluation dataset...
 Evaluation results: {'eval_loss': 0.5, 'eval_accuracy': 0.85}
 Evaluating on test dataset...
 Accuracy: 54.00%
+```
+
+### Example: Using the tool
+
+```bash
+python3 main.py -m data/checkpoints/best-model -i 232113
+```
+
+Sample Output:
+```
+Ranked list of candidate assignees for issue 232113
+1. mjbvz (8407 commits in the repo)
+2. alexr00 (2374 commits in the repo)
+3. aeschli (4553 commits in the repo)
+4. sandy081 (7918 commits in the repo)
+5. jrieken (11665 commits in the repo)
 ```
